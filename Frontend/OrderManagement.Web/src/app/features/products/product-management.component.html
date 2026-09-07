@@ -1,0 +1,24 @@
+<section class="page-card">
+  <div class="page-tools">
+    <div><h2>Hàng hóa</h2><p>Giá bán và số lượng tồn hiện tại</p></div>
+    <div class="tool-actions">
+      <input class="search" placeholder="Tìm mã hoặc tên hàng" [value]="keyword" (input)="keyword=$any($event.target).value" (keyup.enter)="load()" />
+      <button class="primary" type="button" (click)="openCreate()" [disabled]="!auth.hasPermission('PRODUCT_MANAGE')">+ Thêm hàng hóa</button>
+    </div>
+  </div>
+  @if(error()){<div class="error">{{error()}}</div>}
+  <div class="data-wrap"><table><thead><tr><th>Mã</th><th>Hàng hóa</th><th>Đơn vị</th><th>Giá bán</th><th>Tồn kho</th><th></th></tr></thead><tbody>
+    @for(x of items();track x.id){<tr><td><strong>{{x.code}}</strong></td><td><strong>{{x.name}}</strong><small>{{x.description||''}}</small></td><td>{{x.unit}}</td><td>{{x.price.toLocaleString('vi-VN')}} ₫</td><td><span class="stock">{{x.stockQuantity.toLocaleString('vi-VN')}}</span></td><td class="actions"><button (click)="openEdit(x)">Sửa</button><button class="delete" (click)="remove(x)">Xóa</button></td></tr>}
+    @empty{<tr><td colspan="6" class="empty">Chưa có hàng hóa phù hợp.</td></tr>}
+  </tbody></table></div>
+</section>
+@if(dialogOpen()){
+  <div class="overlay"><section class="dialog" role="dialog" aria-modal="true">
+    <div class="dialog-head"><h2>{{editingId()?'Cập nhật hàng hóa':'Thêm hàng hóa'}}</h2><button type="button" (click)="dialogOpen.set(false)">×</button></div>
+    <form [formGroup]="form" (ngSubmit)="save()"><div class="grid">
+      <label><span>Mã hàng *</span><input formControlName="code" /></label><label><span>Tên hàng *</span><input formControlName="name" /></label>
+      <label><span>Đơn vị tính *</span><input formControlName="unit" /></label><label><span>Giá bán *</span><input type="number" min="0" formControlName="price" /></label>
+      <label><span>Số lượng tồn *</span><input type="number" min="0" step="0.01" formControlName="stockQuantity" /></label><label class="wide"><span>Mô tả</span><textarea rows="3" formControlName="description"></textarea></label>
+    </div><div class="dialog-actions"><button class="ghost" type="button" (click)="dialogOpen.set(false)">Hủy</button><button class="primary" type="submit" [disabled]="saving()">{{saving()?'Đang lưu...':'Lưu hàng hóa'}}</button></div></form>
+  </section></div>
+}

@@ -1,0 +1,131 @@
+<section class="workspace">
+  <form class="filters" [formGroup]="filterForm" (ngSubmit)="search()">
+    <label class="search-box">
+      <span>Tìm kiếm</span>
+      <div><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input formControlName="keyword" placeholder="Mã đơn, khách hàng, số điện thoại" /></div>
+    </label>
+    <label><span>Trạng thái</span><select formControlName="status"><option value="">Tất cả trạng thái</option>@for (status of statuses; track status.value) {<option [value]="status.value">{{ status.label }}</option>}</select></label>
+    <label><span>Từ ngày</span><input type="date" formControlName="fromDate" /></label>
+    <label><span>Đến ngày</span><input type="date" formControlName="toDate" /></label>
+    <div class="filter-actions">
+      <button class="button ghost advanced-toggle" type="button" (click)="advancedOpen.set(!advancedOpen())">{{ advancedOpen() ? 'Thu gọn' : 'Nâng cao' }}</button>
+      <button class="button ghost" type="button" (click)="resetFilters()">Đặt lại</button>
+      <button class="button secondary" type="submit"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Tìm kiếm</button>
+    </div>
+    @if (advancedOpen()) {
+      <div class="advanced-filters">
+        <label><span>Người tạo đơn</span><select formControlName="creatorEmployeeId"><option [ngValue]="null">Tất cả</option>@for (employee of employees(); track employee.id) {<option [ngValue]="employee.id">{{ employee.name }}</option>}</select></label>
+        <label><span>Người giao đơn</span><select formControlName="deliveryEmployeeId"><option [ngValue]="null">Tất cả</option>@for (employee of employees(); track employee.id) {<option [ngValue]="employee.id">{{ employee.name }}</option>}</select></label>
+        <label><span>Tổng tiền từ</span><input type="number" min="0" formControlName="minTotal" placeholder="0" /></label>
+        <label><span>Tổng tiền đến</span><input type="number" min="0" formControlName="maxTotal" placeholder="Không giới hạn" /></label>
+        <label><span>Sắp xếp</span><select formControlName="sort"><option value="">Ngày đặt mới nhất</option><option value="deliveryDateAsc">Ngày giao tăng dần</option><option value="deliveryDateDesc">Ngày giao giảm dần</option><option value="totalAsc">Tổng tiền tăng dần</option><option value="totalDesc">Tổng tiền giảm dần</option></select></label>
+      </div>
+    }
+  </form>
+
+  <div class="list-card">
+    <div class="list-heading">
+      <div><h2>Danh sách đơn hàng</h2><p>{{ total() }} đơn hàng được tìm thấy</p></div>
+      <button class="button primary" type="button" (click)="openCreate()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Thêm đơn hàng</button>
+    </div>
+
+    @if (errorMessage()) { <div class="alert" role="alert"><strong>Chưa tải được dữ liệu.</strong><span>{{ errorMessage() }}</span><button type="button" (click)="loadOrders()">Thử lại</button></div> }
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Ngày đặt</th><th>Giao dự kiến</th><th class="money">Thanh toán</th><th>Trạng thái</th><th class="actions-col">Thao tác</th></tr></thead>
+        <tbody>
+          @if (loading()) {
+            @for (row of [1,2,3,4,5]; track row) { <tr class="skeleton-row"><td colspan="7"><span></span></td></tr> }
+          } @else {
+            @for (order of orders(); track order.id) {
+              <tr>
+                <td><button class="order-code" type="button" (click)="openEdit(order)">{{ order.code }}</button><small>{{ order.itemCount }} mặt hàng</small></td>
+                <td><strong>{{ order.customerName }}</strong><small>{{ order.customerPhone || 'Chưa có SĐT' }}</small></td>
+                <td>{{ order.orderedAt | date:'dd/MM/yyyy' }}<small>{{ order.creatorName }}</small></td>
+                <td>{{ order.expectedDeliveryAt ? (order.expectedDeliveryAt | date:'dd/MM/yyyy') : 'Chưa hẹn' }}<small>{{ order.deliveryEmployeeName || 'Chưa phân công' }}</small></td>
+                <td class="money"><strong>{{ order.grandTotal | number:'1.0-0' }} ₫</strong></td>
+                <td><span [class]="'status ' + statusClass(order.status)"><i></i>{{ statusLabel(order.status) }}</span></td>
+                <td class="row-actions">
+                  <button type="button" title="Sửa đơn hàng" aria-label="Sửa đơn hàng" (click)="openEdit(order)"><svg viewBox="0 0 24 24"><path d="m4 20 4.5-1 10-10-3.5-3.5-10 10L4 20ZM13.5 7l3.5 3.5"/></svg></button>
+                  <button class="danger-icon" type="button" title="Xóa đơn hàng" aria-label="Xóa đơn hàng" (click)="askDelete(order)"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg></button>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="7"><div class="empty"><svg viewBox="0 0 24 24"><path d="M6 3h12v18H6zM9 8h6M9 12h6"/></svg><strong>Không có đơn hàng phù hợp</strong><span>Thử thay đổi điều kiện tìm kiếm hoặc tạo đơn hàng mới.</span></div></td></tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <span>Trang {{ page() }} / {{ totalPages() }}</span>
+      <div><button type="button" [disabled]="page() === 1" (click)="changePage(page() - 1)" aria-label="Trang trước">‹</button><b>{{ page() }}</b><button type="button" [disabled]="page() === totalPages()" (click)="changePage(page() + 1)" aria-label="Trang sau">›</button></div>
+    </div>
+  </div>
+</section>
+
+@if (formOpen()) {
+  <div class="modal-backdrop" role="presentation">
+    <section class="order-modal" role="dialog" aria-modal="true" [attr.aria-label]="editingId() ? 'Cập nhật đơn hàng' : 'Thêm đơn hàng'">
+      <div class="modal-header"><div><p>{{ editingId() ? 'CHỈNH SỬA' : 'TẠO MỚI' }}</p><h2>{{ editingId() ? 'Cập nhật đơn hàng' : 'Thêm đơn đặt hàng' }}</h2></div><button type="button" (click)="closeForm()" aria-label="Đóng">×</button></div>
+      <form [formGroup]="orderForm" (ngSubmit)="saveOrder()">
+        <div class="modal-body">
+          <section class="form-section">
+            <div class="section-title"><span>01</span><div><h3>Thông tin chung</h3><p>Khách hàng, người phụ trách và lịch giao</p></div></div>
+            <div class="form-grid">
+              <label><span>Mã đơn hàng <b>*</b></span><input formControlName="code" placeholder="VD: DH2026001" /><small class="field-error">@if (orderForm.get('code')?.touched && orderForm.get('code')?.invalid) { Vui lòng nhập mã đơn hàng. }</small></label>
+              <label><span>Trạng thái <b>*</b></span><select formControlName="status">@for (status of statuses; track status.value) {<option [value]="status.value">{{ status.label }}</option>}</select></label>
+              <label class="wide customer-select"><span>Khách hàng <b>*</b><button type="button" (click)="openCustomerForm()">+ Tạo khách hàng mới</button></span><select formControlName="customerId"><option [ngValue]="null">Chọn khách hàng</option>@for (customer of customers(); track customer.id) {<option [ngValue]="customer.id">{{ customer.code }} — {{ customer.name }} · {{ customer.extra }}</option>}</select></label>
+              <label><span>Người tạo đơn</span><input [value]="creatorName()" readonly /></label>
+              <label><span>Nhân viên giao hàng</span><select formControlName="deliveryEmployeeId"><option [ngValue]="null">Chưa phân công</option>@for (employee of employees(); track employee.id) {<option [ngValue]="employee.id">{{ employee.name }}</option>}</select></label>
+              <label><span>Ngày đặt hàng <b>*</b></span><input type="datetime-local" formControlName="orderedAt" [min]="minOrderDate()" [max]="maxOrderDate()" /></label>
+              <label><span>Giao dự kiến <b>*</b></span><input type="datetime-local" formControlName="expectedDeliveryAt" [min]="minDeliveryDate()" /></label>
+              <label class="wide"><span>Địa chỉ giao hàng <b>*</b></span><input formControlName="deliveryAddress" placeholder="Nhập địa chỉ nhận hàng" /></label>
+              <label class="wide"><span>Ghi chú</span><textarea formControlName="note" rows="2" placeholder="Yêu cầu giao hàng, đóng gói..."></textarea></label>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="section-title"><span>02</span><div><h3>Chi tiết hàng hóa</h3><p>Đơn giá được lấy từ danh mục và có thể điều chỉnh</p></div><button class="add-line" type="button" (click)="addItem()">+ Thêm dòng</button></div>
+            <div class="item-list" formArrayName="items">
+              <div class="item-head"><span>Hàng hóa</span><span>Số lượng</span><span>Đơn giá</span><span>Giảm %</span><span>Thành tiền</span><span></span></div>
+              @for (group of items.controls; track $index; let i = $index) {
+                <div class="item-row" [formGroupName]="i">
+                  <div class="product-cell"><select formControlName="productId" (change)="productChanged(group, i)"><option [ngValue]="null">Chọn hàng hóa</option>@for (product of products(); track product.id) {<option [ngValue]="product.id" [disabled]="isProductUsed(product.id, i)">{{ product.code }} — {{ product.name }} · Tồn {{ product.stockQuantity || 0 }}</option>}</select>@if(group.get('productId')?.value){<small [class.stock-warning]="exceedsStock(group)">Tồn kho: {{ productStock(group) | number:'1.0-2' }}<span>@if(exceedsStock(group)){ · Số đặt vượt tồn}</span></small>}</div>
+                  <input type="number" min="0.01" step="0.01" formControlName="quantity" aria-label="Số lượng" />
+                  <input type="number" min="0" step="1000" formControlName="unitPrice" aria-label="Đơn giá" />
+                  <input type="number" min="0" max="100" formControlName="discountPercent" aria-label="Phần trăm giảm giá" />
+                  <strong>{{ lineTotal(group) | number:'1.0-0' }} ₫</strong>
+                  <button type="button" [disabled]="items.length === 1" (click)="removeItem(i)" aria-label="Xóa hàng hóa">×</button>
+                </div>
+              }
+            </div>
+          </section>
+
+          <section class="form-section payment-section">
+            <div class="section-title"><span>03</span><div><h3>Thanh toán</h3><p>Đối chiếu các khoản trước khi lưu</p></div></div>
+            <div class="payment-grid">
+              <label><span>Giảm giá đơn</span><input type="number" min="0" formControlName="discountAmount" /></label>
+              <label><span>Tiền thuế</span><input type="number" min="0" formControlName="taxAmount" /></label>
+              <label><span>Phí giao hàng</span><input type="number" min="0" formControlName="shippingFee" /></label>
+              <div class="total-box" [class.negative]="grandTotal() < 0"><span>Tổng tiền hàng <b>{{ merchandiseTotal() | number:'1.0-0' }} ₫</b></span><span class="grand">Tổng thanh toán <b>{{ grandTotal() | number:'1.0-0' }} ₫</b></span>@if(grandTotal() < 0){<small>Tổng thanh toán không được âm.</small>}</div>
+            </div>
+          </section>
+        </div>
+        <div class="modal-footer"><button class="button ghost" type="button" (click)="closeForm()">Hủy bỏ</button><button class="button primary" type="submit" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : (editingId() ? 'Lưu thay đổi' : 'Tạo đơn hàng') }}</button></div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (customerFormOpen()) {
+  <div class="modal-backdrop customer-layer"><section class="quick-customer" role="dialog" aria-modal="true"><div class="modal-header"><div><p>KHÁCH HÀNG</p><h2>Tạo khách hàng mới</h2></div><button type="button" (click)="customerFormOpen.set(false)">×</button></div><form [formGroup]="customerForm" (ngSubmit)="createCustomer()"><div class="form-grid"><label><span>Mã khách hàng <b>*</b></span><input formControlName="code" /></label><label><span>Tên khách hàng <b>*</b></span><input formControlName="name" /></label><label><span>Số điện thoại</span><input formControlName="phone" /></label><label><span>Email</span><input formControlName="email" /></label><label class="wide"><span>Địa chỉ</span><input formControlName="address" /></label><label><span>Mã số thuế</span><input formControlName="taxCode" /></label><label class="wide"><span>Ghi chú</span><textarea rows="2" formControlName="note"></textarea></label></div><div class="modal-footer"><button class="button ghost" type="button" (click)="customerFormOpen.set(false)">Hủy</button><button class="button primary" type="submit" [disabled]="customerSaving()">{{customerSaving()?'Đang lưu...':'Tạo khách hàng'}}</button></div></form></section></div>
+}
+
+@if (deleteTarget(); as order) {
+  <div class="modal-backdrop confirm-layer"><section class="confirm-dialog" role="alertdialog" aria-modal="true"><span class="danger-mark"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/></svg></span><h2>Xóa đơn hàng?</h2><p>Đơn hàng <strong>{{ order.code }}</strong> và toàn bộ chi tiết đi kèm sẽ bị xóa. Thao tác này không thể hoàn tác.</p><div><button class="button ghost" type="button" (click)="cancelDelete()">Giữ lại</button><button class="button danger" type="button" (click)="confirmDelete()">Xóa đơn hàng</button></div></section></div>
+}
+
+@if (toastMessage()) { <div class="toast" role="status"><span>✓</span>{{ toastMessage() }}</div> }

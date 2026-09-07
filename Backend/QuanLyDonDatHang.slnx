@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Common/">
+    <Project Path="Common/sv.Order/sv.Order.csproj" />
+  </Folder>
+  <Folder Name="/Services/" />
+  <Folder Name="/Services/Order/">
+    <Project Path="Services/Order/Order.Api/Order.Api.csproj" />
+  </Folder>
+  <Project Path="APIGateway/APIGateway.csproj" />
+</Solution>

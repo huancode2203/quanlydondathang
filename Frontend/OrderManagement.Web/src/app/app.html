@@ -1,0 +1,19 @@
+@if (auth.isAuthenticated()) {
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">TP</span><span><strong>Tâm Phúc</strong><small>Order Center</small></span></div>
+      <nav aria-label="Điều hướng chính">
+        <a class="nav-item" routerLink="/orders" routerLinkActive="active"><svg viewBox="0 0 24 24"><path d="M6 3h12v18H6zM9 7h6M9 11h6M9 15h4"/></svg>Đơn đặt hàng</a>
+        <a class="nav-item" routerLink="/customers" routerLinkActive="active"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M5 20c.5-4 2.8-6 7-6s6.5 2 7 6"/></svg>Khách hàng</a>
+        <a class="nav-item" routerLink="/products" routerLinkActive="active"><svg viewBox="0 0 24 24"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9ZM4.5 7.5l7.5 4 7.5-4M12 12v8.5"/></svg>Hàng hóa</a>
+      </nav>
+      <div class="sidebar-footer"><span class="avatar">{{ auth.user()?.fullName?.slice(0, 2)?.toUpperCase() }}</span><span><strong>{{ auth.user()?.fullName }}</strong><small>{{ auth.user()?.roleName }}</small></span><button type="button" title="Đăng xuất" (click)="logout()">↪</button></div>
+    </aside>
+    <main class="main-content">
+      <header class="topbar"><div><p>Vận hành bán hàng</p><h1>Quản lý đơn đặt hàng</h1></div><span class="connection"><i></i> SQL Server đang kết nối</span></header>
+      <router-outlet />
+    </main>
+  </div>
+} @else {
+  <router-outlet />
+}

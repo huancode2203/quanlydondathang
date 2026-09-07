@@ -1,0 +1,13 @@
+<section class="page-card">
+  <div class="page-tools"><div><h2>Khách hàng</h2><p>Danh mục phục vụ tạo đơn hàng</p></div><div class="tool-actions"><input class="search" placeholder="Tìm mã, tên, số điện thoại" [value]="keyword" (input)="keyword=$any($event.target).value" (keyup.enter)="load()" /><button class="primary" type="button" (click)="openCreate()" [disabled]="!auth.hasPermission('CUSTOMER_MANAGE')">+ Thêm khách hàng</button></div></div>
+  @if(error()){<div class="error">{{error()}}</div>}
+  <div class="data-wrap"><table><thead><tr><th>Mã</th><th>Khách hàng</th><th>Liên hệ</th><th>Địa chỉ</th><th></th></tr></thead><tbody>
+    @for(x of items();track x.id){<tr><td><strong>{{x.code}}</strong></td><td><strong>{{x.name}}</strong><small>{{x.taxCode||'Chưa có mã số thuế'}}</small></td><td>{{x.phone||'—'}}<small>{{x.email||''}}</small></td><td>{{x.address||'—'}}</td><td class="actions"><button (click)="openEdit(x)">Sửa</button><button class="delete" (click)="remove(x)">Xóa</button></td></tr>}
+    @empty{<tr><td colspan="5" class="empty">Chưa có khách hàng phù hợp.</td></tr>}
+  </tbody></table></div>
+</section>
+@if(dialogOpen()){
+  <div class="overlay"><section class="dialog" role="dialog" aria-modal="true"><div class="dialog-head"><h2>{{editingId()?'Cập nhật khách hàng':'Thêm khách hàng'}}</h2><button type="button" (click)="dialogOpen.set(false)">×</button></div>
+    <form [formGroup]="form" (ngSubmit)="save()"><div class="grid"><label><span>Mã khách hàng *</span><input formControlName="code" /></label><label><span>Tên khách hàng *</span><input formControlName="name" /></label><label><span>Số điện thoại</span><input formControlName="phone" /></label><label><span>Email</span><input formControlName="email" /></label><label><span>Mã số thuế</span><input formControlName="taxCode" /></label><label class="wide"><span>Địa chỉ</span><input formControlName="address" /></label><label class="wide"><span>Ghi chú</span><textarea rows="2" formControlName="note"></textarea></label></div><div class="dialog-actions"><button class="ghost" type="button" (click)="dialogOpen.set(false)">Hủy</button><button class="primary" type="submit" [disabled]="saving()">{{saving()?'Đang lưu...':'Lưu khách hàng'}}</button></div></form>
+  </section></div>
+}
