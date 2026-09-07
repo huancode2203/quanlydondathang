@@ -8,12 +8,12 @@
     <label><span>Từ ngày</span><input type="date" formControlName="fromDate" /></label>
     <label><span>Đến ngày</span><input type="date" formControlName="toDate" /></label>
     <div class="filter-actions">
-      <button class="button ghost advanced-toggle" type="button" (click)="advancedOpen.set(!advancedOpen())">{{ advancedOpen() ? 'Thu gọn' : 'Nâng cao' }}</button>
-      <button class="button ghost" type="button" (click)="resetFilters()">Đặt lại</button>
-      <button class="button secondary" type="submit"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Tìm kiếm</button>
+      <button class="button ghost icon-button" [class.active]="advancedOpen()" type="button" (click)="advancedOpen.set(!advancedOpen())" [attr.aria-expanded]="advancedOpen()" aria-controls="advanced-order-filters" title="Bộ lọc nâng cao" aria-label="Bộ lọc nâng cao"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6.5 7.2V19l-3 1v-7.8L4 5Z"/></svg></button>
+      <button class="button ghost icon-button" type="button" (click)="resetFilters()" title="Đặt lại bộ lọc" aria-label="Đặt lại bộ lọc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M19 11a7.5 7.5 0 1 0 .2 5"/><path d="M20 6 17.5 8.5"/></svg></button>
+      <button class="button secondary icon-button" type="submit" title="Tìm kiếm" aria-label="Tìm kiếm"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></button>
     </div>
     @if (advancedOpen()) {
-      <div class="advanced-filters">
+      <div class="advanced-filters" id="advanced-order-filters">
         <label><span>Người tạo đơn</span><select formControlName="creatorEmployeeId"><option [ngValue]="null">Tất cả</option>@for (employee of employees(); track employee.id) {<option [ngValue]="employee.id">{{ employee.name }}</option>}</select></label>
         <label><span>Người giao đơn</span><select formControlName="deliveryEmployeeId"><option [ngValue]="null">Tất cả</option>@for (employee of employees(); track employee.id) {<option [ngValue]="employee.id">{{ employee.name }}</option>}</select></label>
         <label><span>Tổng tiền từ</span><input type="number" min="0" formControlName="minTotal" placeholder="0" /></label>
@@ -90,11 +90,12 @@
           <section class="form-section">
             <div class="section-title"><span>02</span><div><h3>Chi tiết hàng hóa</h3><p>Đơn giá được lấy từ danh mục và có thể điều chỉnh</p></div><button class="add-line" type="button" (click)="addItem()">+ Thêm dòng</button></div>
             <div class="item-list" formArrayName="items">
-              <div class="item-head"><span>Hàng hóa</span><span>Số lượng</span><span>Đơn giá</span><span>Giảm %</span><span>Thành tiền</span><span></span></div>
+              <div class="item-head"><span>Hàng hóa</span><span>Số lượng</span><span>Tồn sau đặt / thực tế</span><span>Đơn giá</span><span>Giảm %</span><span>Thành tiền</span><span></span></div>
               @for (group of items.controls; track $index; let i = $index) {
                 <div class="item-row" [formGroupName]="i">
-                  <div class="product-cell"><select formControlName="productId" (change)="productChanged(group, i)"><option [ngValue]="null">Chọn hàng hóa</option>@for (product of products(); track product.id) {<option [ngValue]="product.id" [disabled]="isProductUsed(product.id, i)">{{ product.code }} — {{ product.name }} · Tồn {{ product.stockQuantity || 0 }}</option>}</select>@if(group.get('productId')?.value){<small [class.stock-warning]="exceedsStock(group)">Tồn kho: {{ productStock(group) | number:'1.0-2' }}<span>@if(exceedsStock(group)){ · Số đặt vượt tồn}</span></small>}</div>
+                  <div class="product-cell"><select formControlName="productId" (change)="productChanged(group, i)"><option [ngValue]="null">Chọn hàng hóa</option>@for (product of products(); track product.id) {<option [ngValue]="product.id" [disabled]="isProductUsed(product.id, i)">{{ product.code }} — {{ product.name }}</option>}</select></div>
                   <input type="number" min="0.01" step="0.01" formControlName="quantity" aria-label="Số lượng" />
+                  <div class="stock-balance" [class.shortage]="group.get('productId')?.value && remainingStock(group) < 0" [class.unselected]="!group.get('productId')?.value"><strong>{{ group.get('productId')?.value ? (remainingStock(group) | number:'1.0-2') : '—' }}</strong><span>/ {{ group.get('productId')?.value ? (productStock(group) | number:'1.0-2') : '—' }}</span>@if (group.get('productId')?.value && remainingStock(group) < 0) {<small>Thiếu hàng</small>}</div>
                   <input type="number" min="0" step="1000" formControlName="unitPrice" aria-label="Đơn giá" />
                   <input type="number" min="0" max="100" formControlName="discountPercent" aria-label="Phần trăm giảm giá" />
                   <strong>{{ lineTotal(group) | number:'1.0-0' }} ₫</strong>

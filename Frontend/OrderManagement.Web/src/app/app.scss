@@ -17,11 +17,9 @@ nav { display:grid; align-content:start; gap:6px; }
 .sidebar-footer small { color: #8fa8c1; margin-top: 2px; }
 .sidebar-footer > span:nth-child(2) { min-width:0; flex:1; }.sidebar-footer strong,.sidebar-footer small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sidebar-footer button{border:0;background:transparent;color:#8fa8c1;font-size:1.2rem;cursor:pointer}.sidebar-footer button:hover{color:#fff}
 .main-content { min-width: 0; padding: 0 32px 40px; }
-.topbar { min-height: 108px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.topbar { min-height: 108px; display: flex; align-items: center; gap: 20px; }
 .topbar p { margin: 0 0 5px; color: #668096; font-size: .82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 .topbar h1 { margin: 0; color: #102a43; font-size: clamp(1.55rem, 2.4vw, 2rem); letter-spacing: -.03em; }
-.connection { display: inline-flex; align-items: center; gap: 8px; color: #4d6578; font-size: .82rem; font-weight: 600; background: #fff; border: 1px solid #dce6ed; padding: 9px 12px; border-radius: 999px; }
-.connection i { width: 8px; height: 8px; border-radius: 50%; background: #20b486; box-shadow: 0 0 0 4px rgba(32,180,134,.13); }
 @media (max-width: 860px) {
   .app-shell { grid-template-columns: 1fr; }
   .sidebar { position: static; height: auto; padding: 14px 18px; flex-direction: row; align-items: center; gap: 16px; }
@@ -30,6 +28,5 @@ nav { display:grid; align-content:start; gap:6px; }
   nav { margin-left: auto; flex: 0; display:flex; overflow-x:auto; }
   .nav-item { padding: 10px 12px; }
   .main-content { padding: 0 16px 28px; }
-  .connection { display: none; }
   .topbar { min-height: 96px; }
 }

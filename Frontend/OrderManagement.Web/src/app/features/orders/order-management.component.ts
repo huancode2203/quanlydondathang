@@ -226,7 +226,9 @@ export class OrderManagementComponent implements OnInit {
     return this.products().find(x => x.id === Number(group.get('productId')?.value))?.stockQuantity ?? 0;
   }
 
-  exceedsStock(group: AbstractControl): boolean { return Number(group.get('quantity')?.value || 0) > this.productStock(group); }
+  remainingStock(group: AbstractControl): number {
+    return this.productStock(group) - Number(group.get('quantity')?.value || 0);
+  }
 
   saveOrder(): void {
     if (this.orderForm.invalid || this.items.length === 0) {

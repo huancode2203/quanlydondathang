@@ -10,7 +10,7 @@
       <div class="sidebar-footer"><span class="avatar">{{ auth.user()?.fullName?.slice(0, 2)?.toUpperCase() }}</span><span><strong>{{ auth.user()?.fullName }}</strong><small>{{ auth.user()?.roleName }}</small></span><button type="button" title="Đăng xuất" (click)="logout()">↪</button></div>
     </aside>
     <main class="main-content">
-      <header class="topbar"><div><p>Vận hành bán hàng</p><h1>Quản lý đơn đặt hàng</h1></div><span class="connection"><i></i> SQL Server đang kết nối</span></header>
+      <header class="topbar"><div><p>Vận hành bán hàng</p><h1>Quản lý đơn đặt hàng</h1></div></header>
       <router-outlet />
     </main>
   </div>
