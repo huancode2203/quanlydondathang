@@ -9,6 +9,9 @@ public sealed class OrderDbContext(DbContextOptions<OrderDbContext> options) : D
     public DbSet<OrderItemEntity> OrderItems => Set<OrderItemEntity>();
     public DbSet<CustomerEntity> Customers => Set<CustomerEntity>();
     public DbSet<ProductEntity> Products => Set<ProductEntity>();
+    public DbSet<RoleEntity> Roles => Set<RoleEntity>();
+    public DbSet<PermissionEntity> Permissions => Set<PermissionEntity>();
+    public DbSet<RolePermissionEntity> RolePermissions => Set<RolePermissionEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -81,5 +84,38 @@ public sealed class OrderDbContext(DbContextOptions<OrderDbContext> options) : D
         product.Property(x => x.CreatedAt).HasColumnName("NgayTao").ValueGeneratedOnAdd();
         product.Property(x => x.UpdatedAt).HasColumnName("NgayCapNhat");
         product.Property(x => x.IsDeleted).HasColumnName("IsDeleted");
+
+        var role = modelBuilder.Entity<RoleEntity>();
+        role.ToTable("tbl_NhomQuyen");
+        role.HasKey(x => x.Id);
+        role.Property(x => x.Id).HasColumnName("NhomQuyenID");
+        role.Property(x => x.Code).HasColumnName("MaNhomQuyen").HasMaxLength(50).IsUnicode(false);
+        role.Property(x => x.Name).HasColumnName("TenNhomQuyen").HasMaxLength(150);
+        role.Property(x => x.Description).HasColumnName("MoTa").HasMaxLength(500);
+        role.Property(x => x.Status).HasColumnName("TrangThai").HasMaxLength(20).IsUnicode(false);
+        role.Property(x => x.CreatedAt).HasColumnName("NgayTao").ValueGeneratedOnAdd();
+
+        var permission = modelBuilder.Entity<PermissionEntity>();
+        permission.ToTable("tbl_Quyen");
+        permission.HasKey(x => x.Id);
+        permission.Property(x => x.Id).HasColumnName("QuyenID");
+        permission.Property(x => x.Code).HasColumnName("MaQuyen").HasMaxLength(100).IsUnicode(false);
+        permission.Property(x => x.Name).HasColumnName("TenQuyen").HasMaxLength(150);
+        permission.Property(x => x.Feature).HasColumnName("ChucNang").HasMaxLength(100).IsUnicode(false);
+        permission.Property(x => x.Action).HasColumnName("HanhDong").HasMaxLength(50).IsUnicode(false);
+        permission.Property(x => x.Description).HasColumnName("MoTa").HasMaxLength(500);
+        permission.Property(x => x.Status).HasColumnName("TrangThai").HasMaxLength(20).IsUnicode(false);
+        permission.Property(x => x.CreatedAt).HasColumnName("NgayTao").ValueGeneratedOnAdd();
+
+        var rolePermission = modelBuilder.Entity<RolePermissionEntity>();
+        rolePermission.ToTable("tbl_CapQuyen");
+        rolePermission.HasKey(x => x.Id);
+        rolePermission.Property(x => x.Id).HasColumnName("CapQuyenID");
+        rolePermission.Property(x => x.RoleId).HasColumnName("NhomQuyenID");
+        rolePermission.Property(x => x.PermissionId).HasColumnName("QuyenID");
+        rolePermission.Property(x => x.GrantedAt).HasColumnName("NgayCap").ValueGeneratedOnAdd();
+        rolePermission.HasIndex(x => new { x.RoleId, x.PermissionId }).IsUnique();
+        rolePermission.HasOne(x => x.Role).WithMany(x => x.Permissions).HasForeignKey(x => x.RoleId);
+        rolePermission.HasOne(x => x.Permission).WithMany(x => x.Roles).HasForeignKey(x => x.PermissionId);
     }
 }

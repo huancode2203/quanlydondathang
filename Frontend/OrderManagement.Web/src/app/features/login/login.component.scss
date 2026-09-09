@@ -32,7 +32,7 @@
   margin-bottom: 34px;
 }
 
-.login-brand > span {
+.login-brand>span {
   width: 44px;
   height: 44px;
   border-radius: 13px;
@@ -141,6 +141,12 @@ button:disabled {
 }
 
 @media (max-width: 520px) {
-  .login-page { padding: 14px; }
-  .login-card { padding: 28px 22px; border-radius: 18px; }
+  .login-page {
+    padding: 14px;
+  }
+
+  .login-card {
+    padding: 28px 22px;
+    border-radius: 18px;
+  }
 }

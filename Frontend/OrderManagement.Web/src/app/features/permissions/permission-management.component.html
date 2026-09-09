@@ -1,0 +1,144 @@
+<section class="permission-page">
+  <header class="page-heading">
+    <div class="heading-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.2c0 4.7 3 8.2 7.5 9.8 4.5-1.6 7.5-5.1 7.5-9.8V6L12 3Z"/><path d="m8.7 12 2.1 2.1 4.7-4.8"/></svg>
+    </div>
+    <div>
+      <p>Quản trị hệ thống</p>
+      <h2>Phân quyền người dùng</h2>
+      <span>Cấp quyền theo nhóm tài khoản để kiểm soát các chức năng được phép sử dụng.</span>
+    </div>
+    <div class="admin-summary">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5.2c0 4.7 3 8.2 7.5 9.8 4.5-1.6 7.5-5.1 7.5-9.8V6L12 3Z"/><path d="m8.7 12 2.1 2.1 4.7-4.8"/></svg>
+      <span><strong>Admin có toàn quyền</strong><small>Luôn được cấp mọi quyền đang hoạt động</small></span>
+    </div>
+  </header>
+
+  @if (error()) {
+    <div class="message error-message" role="alert">
+      <span>{{ error() }}</span>
+      @if (!data()) { <button type="button" (click)="load()">Thử lại</button> }
+    </div>
+  }
+  @if (notice()) {
+    <div class="message success-message" role="status">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+      <span>{{ notice() }} Tài khoản thuộc nhóm này sẽ nhận quyền mới ở lần đăng nhập tiếp theo.</span>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading-state"><span class="spinner"></span><p>Đang tải cấu hình quyền...</p></div>
+  } @else if (data()) {
+    <div class="permission-layout">
+      <aside class="role-panel">
+        <div class="panel-title">
+          <div><p>Nhóm tài khoản</p><span>Chọn nhóm cần cấu hình</span></div>
+          <strong>{{ roles().length }}</strong>
+        </div>
+
+        <div class="role-list">
+          @for (role of roles(); track role.id) {
+            <button
+              class="role-item"
+              type="button"
+              [disabled]="saving()"
+              [class.selected]="role.id === selectedRoleId()"
+              (click)="selectRole(role)"
+            >
+              <span class="role-avatar" [class.admin]="role.isSystemAdmin">
+                @if (role.isSystemAdmin) {
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5.2c0 4.7 3 8.2 7.5 9.8 4.5-1.6 7.5-5.1 7.5-9.8V6L12 3Z"/><path d="m8.7 12 2.1 2.1 4.7-4.8"/></svg>
+                } @else {
+                  {{ role.name.slice(0, 2).toUpperCase() }}
+                }
+              </span>
+              <span class="role-copy">
+                <strong>{{ role.name }}</strong>
+                <small>{{ role.description || role.code }}</small>
+                <span class="role-meta">
+                  <b>{{ grantedCount(role) }}/{{ data()!.permissions.length }} quyền</b>
+                  @if (role.isSystemAdmin) { <em>Toàn quyền</em> }
+                </span>
+              </span>
+              <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+            </button>
+          }
+        </div>
+      </aside>
+
+      <section class="permission-panel">
+        @if (selectedRole(); as role) {
+          <div class="permission-head">
+            <div>
+              <p>Quyền của nhóm</p>
+              <h3>{{ role.name }}</h3>
+              <span>{{ role.description }}</span>
+            </div>
+            <div class="permission-total">
+              <strong>{{ selectedPermissionIds().size }}</strong>
+              <span>/ {{ data()!.permissions.length }} quyền</span>
+            </div>
+          </div>
+
+          @if (role.isSystemAdmin) {
+            <div class="admin-lock">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>
+              <div><strong>Quyền quản trị viên được bảo vệ</strong><span>Nhóm Admin luôn có toàn bộ quyền và không thể bỏ chọn quyền tại đây.</span></div>
+            </div>
+          }
+
+          <div class="group-list">
+            @for (group of groups(); track group.feature) {
+              <section class="permission-group">
+                <div class="group-head">
+                  <div><h4>{{ group.label }}</h4><p>{{ group.description }}</p></div>
+                  <span>{{ groupGrantedCount(group) }}/{{ group.permissions.length }}</span>
+                </div>
+                <div class="permission-grid">
+                  @for (permission of group.permissions; track permission.id) {
+                    <label
+                      class="permission-item"
+                      [class.granted]="isGranted(permission.id)"
+                      [class.locked]="role.isSystemAdmin"
+                    >
+                      <input
+                        type="checkbox"
+                        [checked]="isGranted(permission.id)"
+                        [disabled]="role.isSystemAdmin"
+                        (change)="togglePermission(permission.id)"
+                      />
+                      <span class="checkmark">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+                      </span>
+                      <span class="permission-copy">
+                        <strong>{{ permission.name }}</strong>
+                        <small>{{ permission.description || permission.code }}</small>
+                      </span>
+                      <code>{{ permission.action }}</code>
+                    </label>
+                  }
+                </div>
+              </section>
+            }
+          </div>
+
+          <footer class="permission-actions">
+            <p>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+              Quyền mới áp dụng khi người dùng đăng nhập lại.
+            </p>
+            <div>
+              <button class="secondary" type="button" [disabled]="role.isSystemAdmin || saving()" (click)="clearAll()">Bỏ chọn tất cả</button>
+              <button class="secondary" type="button" [disabled]="role.isSystemAdmin || saving()" (click)="selectAll()">Chọn tất cả</button>
+              <button class="primary" type="button" [disabled]="role.isSystemAdmin || !dirty() || saving()" (click)="save()">
+                @if (saving()) { <span class="button-spinner"></span> }
+                {{ saving() ? 'Đang lưu...' : 'Lưu phân quyền' }}
+              </button>
+            </div>
+          </footer>
+        }
+      </section>
+    </div>
+  }
+</section>

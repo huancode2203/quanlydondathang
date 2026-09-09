@@ -16,6 +16,7 @@ builder.Services.AddDbContext<OrderDbContext>(options =>
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IMasterDataRepository, MasterDataRepository>();
+builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters

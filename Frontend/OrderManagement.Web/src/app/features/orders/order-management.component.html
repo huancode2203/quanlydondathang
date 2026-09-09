@@ -1,12 +1,12 @@
 <section class="workspace">
   <form class="filters" [formGroup]="filterForm" (ngSubmit)="search()">
+    <label><span>Từ ngày</span><input type="date" formControlName="fromDate" /></label>
+    <label><span>Đến ngày</span><input type="date" formControlName="toDate" /></label>
+    <label><span>Trạng thái</span><select formControlName="status"><option value="">Tất cả trạng thái</option>@for (status of statuses; track status.value) {<option [value]="status.value">{{ status.label }}</option>}</select></label>
     <label class="search-box">
       <span>Tìm kiếm</span>
       <div><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input formControlName="keyword" placeholder="Mã đơn, khách hàng, số điện thoại" /></div>
     </label>
-    <label><span>Trạng thái</span><select formControlName="status"><option value="">Tất cả trạng thái</option>@for (status of statuses; track status.value) {<option [value]="status.value">{{ status.label }}</option>}</select></label>
-    <label><span>Từ ngày</span><input type="date" formControlName="fromDate" /></label>
-    <label><span>Đến ngày</span><input type="date" formControlName="toDate" /></label>
     <div class="filter-actions">
       <button class="button ghost icon-button" [class.active]="advancedOpen()" type="button" (click)="advancedOpen.set(!advancedOpen())" [attr.aria-expanded]="advancedOpen()" aria-controls="advanced-order-filters" title="Bộ lọc nâng cao" aria-label="Bộ lọc nâng cao"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6.5 7.2V19l-3 1v-7.8L4 5Z"/></svg></button>
       <button class="button ghost icon-button" type="button" (click)="resetFilters()" title="Đặt lại bộ lọc" aria-label="Đặt lại bộ lọc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M19 11a7.5 7.5 0 1 0 .2 5"/><path d="M20 6 17.5 8.5"/></svg></button>
@@ -33,7 +33,7 @@
 
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Ngày đặt</th><th>Giao dự kiến</th><th class="money">Thanh toán</th><th>Trạng thái</th><th class="actions-col">Thao tác</th></tr></thead>
+        <thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Ngày đặt</th><th>Giao dự kiến</th><th class="money">Tổng tiền</th><th>Trạng thái</th><th class="actions-col">Thao tác</th></tr></thead>
         <tbody>
           @if (loading()) {
             @for (row of [1,2,3,4,5]; track row) { <tr class="skeleton-row"><td colspan="7"><span></span></td></tr> }
@@ -60,8 +60,16 @@
     </div>
 
     <div class="pagination">
-      <span>Trang {{ page() }} / {{ totalPages() }}</span>
-      <div><button type="button" [disabled]="page() === 1" (click)="changePage(page() - 1)" aria-label="Trang trước">‹</button><b>{{ page() }}</b><button type="button" [disabled]="page() === totalPages()" (click)="changePage(page() + 1)" aria-label="Trang sau">›</button></div>
+      <span>Trang {{ page() }} / {{ totalPages() }} · {{ total() }} đơn hàng</span>
+      <nav aria-label="Phân trang danh sách đơn hàng">
+        <button type="button" [disabled]="page() === 1" (click)="changePage(1)" aria-label="Trang đầu">«</button>
+        <button type="button" [disabled]="page() === 1" (click)="changePage(page() - 1)" aria-label="Trang trước">‹</button>
+        @for (pageNumber of visiblePages(); track pageNumber) {
+          <button type="button" [class.current]="pageNumber === page()" [attr.aria-current]="pageNumber === page() ? 'page' : null" (click)="changePage(pageNumber)">{{ pageNumber }}</button>
+        }
+        <button type="button" [disabled]="page() === totalPages()" (click)="changePage(page() + 1)" aria-label="Trang sau">›</button>
+        <button type="button" [disabled]="page() === totalPages()" (click)="changePage(totalPages())" aria-label="Trang cuối">»</button>
+      </nav>
     </div>
   </div>
 </section>
@@ -110,7 +118,7 @@
               <label><span>Giảm giá đơn</span><input type="number" min="0" formControlName="discountAmount" /></label>
               <label><span>Tiền thuế</span><input type="number" min="0" formControlName="taxAmount" /></label>
               <label><span>Phí giao hàng</span><input type="number" min="0" formControlName="shippingFee" /></label>
-              <div class="total-box" [class.negative]="grandTotal() < 0"><span>Tổng tiền hàng <b>{{ merchandiseTotal() | number:'1.0-0' }} ₫</b></span><span class="grand">Tổng thanh toán <b>{{ grandTotal() | number:'1.0-0' }} ₫</b></span>@if(grandTotal() < 0){<small>Tổng thanh toán không được âm.</small>}</div>
+              <div class="total-box" [class.negative]="grandTotal() < 0"><span>Tổng tiền hàng <b>{{ merchandiseTotal() | number:'1.0-0' }} ₫</b></span><span class="grand">Tổng tiền <b>{{ grandTotal() | number:'1.0-0' }} ₫</b></span>@if(grandTotal() < 0){<small>Tổng tiền không được âm.</small>}</div>
             </div>
           </section>
         </div>

@@ -18,13 +18,25 @@ public sealed class AuthRepository(OrderDbContext dbContext) : IAuthRepository
             INNER JOIN tbl_NhanVien nv ON nv.NhanVienID = tk.NhanVienID
             INNER JOIN tbl_NhomQuyen nq ON nq.NhomQuyenID = tk.NhomQuyenID
             WHERE tk.TenDangNhap = @Username AND tk.TrangThai = 'ACTIVE'
-              AND nv.TrangThai = 'ACTIVE' AND nv.IsDeleted = 0;
+              AND nv.TrangThai = 'ACTIVE' AND nv.IsDeleted = 0
+              AND nq.TrangThai = 'ACTIVE';
 
             SELECT q.MaQuyen
             FROM tbl_TaiKhoan tk
-            INNER JOIN tbl_CapQuyen cq ON cq.NhomQuyenID = tk.NhomQuyenID
-            INNER JOIN tbl_Quyen q ON q.QuyenID = cq.QuyenID
-            WHERE tk.TenDangNhap = @Username AND q.TrangThai = 'ACTIVE';
+            INNER JOIN tbl_NhomQuyen nq ON nq.NhomQuyenID = tk.NhomQuyenID
+            CROSS JOIN tbl_Quyen q
+            WHERE tk.TenDangNhap = @Username AND tk.TrangThai = 'ACTIVE'
+              AND nq.TrangThai = 'ACTIVE' AND q.TrangThai = 'ACTIVE'
+              AND (
+                  nq.MaNhomQuyen = 'ADMIN'
+                  OR EXISTS (
+                      SELECT 1
+                      FROM tbl_CapQuyen cq
+                      WHERE cq.NhomQuyenID = tk.NhomQuyenID
+                        AND cq.QuyenID = q.QuyenID
+                  )
+              )
+            ORDER BY q.QuyenID;
             """;
 
         var connection = dbContext.Database.GetDbConnection();

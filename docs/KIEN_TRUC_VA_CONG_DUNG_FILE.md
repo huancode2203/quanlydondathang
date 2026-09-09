@@ -52,6 +52,7 @@ Gateway không xử lý nghiệp vụ hoặc truy cập database.
 | `Controllers/OrdersController.cs` | CRUD, tìm kiếm đơn, kiểm tra `ORDER_*`, lấy người tạo từ JWT. |
 | `Controllers/CustomersController.cs` | CRUD khách hàng, kiểm tra quyền khách hàng. |
 | `Controllers/ProductsController.cs` | CRUD hàng hóa/tồn kho, kiểm tra quyền hàng hóa. |
+| `Controllers/PermissionsController.cs` | Đọc/cập nhật quyền theo nhóm, chỉ cho phép `PERMISSION_MANAGE`. |
 | `Properties/launchSettings.json` | Chạy Order API tại cổng `5001`. |
 
 ### `Backend/Common/sv.Order`
@@ -70,6 +71,9 @@ Gateway không xử lý nghiệp vụ hoặc truy cập database.
 | `OrderItemEntity.cs` | `tbl_ChiTietDonDatHang` |
 | `CustomerEntity.cs` | `tbl_KhachHang` |
 | `ProductEntity.cs` | `tbl_HangHoa`, gồm `SoLuongTon` |
+| `RoleEntity.cs` | `tbl_NhomQuyen` |
+| `PermissionEntity.cs` | `tbl_Quyen` |
+| `RolePermissionEntity.cs` | `tbl_CapQuyen` |
 
 #### `DTOs`
 
@@ -78,6 +82,7 @@ Gateway không xử lý nghiệp vụ hoặc truy cập database.
 | `OrderDtos.cs` | Request tìm kiếm nâng cao, danh sách/chi tiết đơn, request lưu và phân trang. |
 | `AuthDtos.cs` | Request đăng nhập, user xác thực và response JWT. |
 | `MasterDataDtos.cs` | Request/response khách hàng và hàng hóa. |
+| `PermissionDtos.cs` | Danh sách nhóm/quyền và request cập nhật quyền. |
 
 DTO là dữ liệu trao đổi giữa API và frontend, tách khỏi Entity để client không sửa cột hệ thống.
 
@@ -88,6 +93,7 @@ DTO là dữ liệu trao đổi giữa API và frontend, tách khỏi Entity đ�
 | `IOrderRepository.cs` | Truy vấn, tạo, sửa, xóa đơn và tải danh mục cho form. |
 | `IAuthRepository.cs` | Xác thực tài khoản và tải quyền. |
 | `IMasterDataRepository.cs` | CRUD khách hàng và hàng hóa. |
+| `IPermissionRepository.cs` | Tải cấu hình quyền và cập nhật quyền của nhóm. |
 
 Interface không chứa SQL hoặc phần thân hàm.
 
@@ -98,6 +104,7 @@ Interface không chứa SQL hoặc phần thân hàm.
 | `OrderRepository.cs` | Dapper cho tìm kiếm/chi tiết; EF Core cho CRUD/transaction; validation ngày, trùng hàng và tổng âm. |
 | `AuthRepository.cs` | Dapper đọc tài khoản, nhân viên, nhóm quyền, quyền và cập nhật lần đăng nhập. |
 | `MasterDataRepository.cs` | Dapper tải danh sách; EF Core thêm/sửa/xóa mềm khách hàng/hàng hóa. |
+| `PermissionRepository.cs` | Dapper tải ma trận quyền; EF Core cập nhật các quyền thay đổi của nhóm. |
 
 ## 4. Frontend Angular
 
@@ -119,7 +126,7 @@ Interface không chứa SQL hoặc phần thân hàm.
 | `app.html` | Sidebar, menu và vùng `router-outlet`. |
 | `app.scss` | Giao diện khung và responsive. |
 | `app.config.ts` | Router, HttpClient và interceptor JWT. |
-| `app.routes.ts` | Route login/orders/customers/products và auth guard. |
+| `app.routes.ts` | Route login/orders/customers/products/permissions và các guard. |
 | `app.spec.ts` | Unit test component gốc. |
 
 ### `core`
@@ -128,8 +135,10 @@ Interface không chứa SQL hoặc phần thân hàm.
 - `services/auth.service.ts`: đăng nhập, lưu phiên và user hiện tại.
 - `services/order-api.service.ts`: API đơn và query string bộ lọc.
 - `services/master-data-api.service.ts`: CRUD khách hàng/hàng hóa.
+- `services/permission-api.service.ts`: tải và lưu cấu hình quyền theo nhóm.
 - `interceptors/auth.interceptor.ts`: gắn JWT và xử lý HTTP 401.
 - `guards/auth.guard.ts`: chặn route khi chưa đăng nhập.
+- `guards/permission.guard.ts`: chặn màn hình phân quyền nếu thiếu `PERMISSION_MANAGE`.
 
 ### `features`
 
@@ -139,6 +148,7 @@ Interface không chứa SQL hoặc phần thân hàm.
 | `orders/` | Nghiệp vụ chính: lọc, CRUD đơn, tạo nhanh khách hàng, tồn kho, validation. |
 | `customers/` | Danh sách và CRUD khách hàng đơn giản. |
 | `products/` | Danh sách và CRUD hàng hóa/tồn kho đơn giản. |
+| `permissions/` | Chọn nhóm tài khoản và cấp/bỏ quyền; khóa toàn quyền của Admin. |
 | `shared/master-data.scss` | CSS dùng chung cho hai màn hình danh mục. |
 
 Mỗi feature gồm `.ts` xử lý logic, `.html` hiển thị và `.scss` định dạng.
@@ -149,6 +159,7 @@ Mỗi feature gồm `.ts` xử lý logic, `.html` hiển thị và `.scss` đị
 |---|---|
 | `QuanLyDonDatHangDB.sql` | Script đầy đủ tạo database, bảng, khóa, index, trigger, function và dữ liệu mẫu. |
 | `002_AddProductStock.sql` | Bổ sung `SoLuongTon` cho database đã tồn tại và cập nhật tồn mẫu. |
+| `003_EnsureAdminFullPermissions.sql` | Bổ sung mọi quyền còn thiếu cho Admin, chạy lại an toàn. |
 
 Trigger `trg_CapNhatTongTienDonHang` tính lại `TongTienHang`. `ThanhTien` và `TongThanhToan` là computed column nên API không ghi trực tiếp.
 
@@ -162,3 +173,6 @@ Trigger `trg_CapNhatTongTienDonHang` tính lại `TongTienHang`. `ThanhTien` và
 - Trang Hàng hóa tính `tồn sau đơn = tồn thực tế - số lượng trong các đơn chưa giao/chưa hủy`; kết quả âm và sản phẩm thiếu được tô đỏ.
 - Tổng thanh toán âm bị chặn ở Angular và Repository.
 - Lọc nâng cao theo người tạo, người giao, khoảng tổng tiền; sắp xếp ngày giao/tổng tiền.
+- Bộ lọc và phân trang của danh sách đơn được giữ cố định; chỉ thân bảng cuộn.
+- Nhóm Admin luôn nhận toàn bộ quyền hoạt động ở cả dữ liệu cấp quyền và lúc phát JWT.
+- Thay đổi quyền áp dụng cho tài khoản ở lần đăng nhập tiếp theo.

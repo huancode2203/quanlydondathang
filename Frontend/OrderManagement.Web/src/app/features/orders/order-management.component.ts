@@ -149,6 +149,15 @@ export class OrderManagementComponent implements OnInit {
     this.loadOrders();
   }
 
+  visiblePages(): number[] {
+    const total = this.totalPages();
+    const visibleCount = Math.min(5, total);
+    let start = Math.max(1, this.page() - Math.floor(visibleCount / 2));
+    const end = Math.min(total, start + visibleCount - 1);
+    start = Math.max(1, end - visibleCount + 1);
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+  }
+
   openCreate(): void {
     this.editingId.set(null);
     this.creatorName.set(this.auth.user()?.fullName ?? '');
@@ -244,7 +253,7 @@ export class OrderManagementComponent implements OnInit {
       this.showToast('Ngày và giờ giao dự kiến phải sau hiện tại và sau ngày đặt hàng.'); return;
     }
     if (this.grandTotal() < 0) {
-      this.showToast('Tổng thanh toán đang âm. Vui lòng giảm số tiền chiết khấu.'); return;
+      this.showToast('Tổng tiền đang âm. Vui lòng giảm số tiền chiết khấu.'); return;
     }
 
     const request = this.buildRequest();
