@@ -2,12 +2,14 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
-export const permissionManagementGuard: CanActivateFn = () => {
+export const permissionGuard = (permissionCode: string): CanActivateFn => () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
   if (!auth.isAuthenticated()) return router.createUrlTree(['/login']);
-  return auth.hasPermission('PERMISSION_MANAGE')
+  return auth.hasPermission(permissionCode)
     ? true
-    : router.createUrlTree(['/orders']);
+    : router.createUrlTree([auth.defaultRoute()]);
 };
+
+export const permissionManagementGuard = permissionGuard('PERMISSION_MANAGE');

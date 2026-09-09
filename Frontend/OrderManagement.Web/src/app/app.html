@@ -4,16 +4,22 @@
     <div class="brand"><span class="brand-mark">TP</span><span><strong>Tâm Phúc</strong><small>Order
           Center</small></span></div>
     <nav aria-label="Điều hướng chính">
+      @if (auth.hasPermission('ORDER_VIEW')) {
       <a class="nav-item" routerLink="/orders" routerLinkActive="active"><svg viewBox="0 0 24 24">
           <path d="M6 3h12v18H6zM9 7h6M9 11h6M9 15h4" />
         </svg>Đơn đặt hàng</a>
+      }
+      @if (auth.hasPermission('CUSTOMER_VIEW')) {
       <a class="nav-item" routerLink="/customers" routerLinkActive="active"><svg viewBox="0 0 24 24">
           <circle cx="12" cy="8" r="3" />
           <path d="M5 20c.5-4 2.8-6 7-6s6.5 2 7 6" />
         </svg>Khách hàng</a>
+      }
+      @if (auth.hasPermission('PRODUCT_VIEW')) {
       <a class="nav-item" routerLink="/products" routerLinkActive="active"><svg viewBox="0 0 24 24">
           <path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9ZM4.5 7.5l7.5 4 7.5-4M12 12v8.5" />
         </svg>Hàng hóa</a>
+      }
       @if (auth.hasPermission('PERMISSION_MANAGE')) {
       <a class="nav-item" routerLink="/permissions" routerLinkActive="active"><svg viewBox="0 0 24 24">
           <path d="M12 3 4.5 6v5.2c0 4.7 3 8.2 7.5 9.8 4.5-1.6 7.5-5.1 7.5-9.8V6L12 3Z" />

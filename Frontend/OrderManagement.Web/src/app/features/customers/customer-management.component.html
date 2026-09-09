@@ -27,10 +27,10 @@
           <td>{{x.phone||'—'}}<small>{{x.email||''}}</small></td>
           <td>{{x.address||'—'}}</td>
           <td class="actions"><button type="button" title="Sửa khách hàng" aria-label="Sửa khách hàng"
-              (click)="openEdit(x)"><svg viewBox="0 0 24 24" aria-hidden="true">
+              [disabled]="!auth.hasPermission('CUSTOMER_MANAGE')" (click)="openEdit(x)"><svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="m4 20 4.5-1 10-10-3.5-3.5-10 10L4 20ZM13.5 7l3.5 3.5" />
               </svg></button><button type="button" class="delete" title="Xóa khách hàng" aria-label="Xóa khách hàng"
-              (click)="remove(x)"><svg viewBox="0 0 24 24" aria-hidden="true">
+              [disabled]="!auth.hasPermission('CUSTOMER_MANAGE')" (click)="remove(x)"><svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" />
               </svg></button></td>
         </tr>}

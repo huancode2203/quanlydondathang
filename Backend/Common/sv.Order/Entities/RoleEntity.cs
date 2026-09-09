@@ -9,4 +9,5 @@ public sealed class RoleEntity
     public string Status { get; set; } = "ACTIVE";
     public DateTime CreatedAt { get; set; }
     public List<RolePermissionEntity> Permissions { get; set; } = [];
+    public List<AccountEntity> Accounts { get; set; } = [];
 }

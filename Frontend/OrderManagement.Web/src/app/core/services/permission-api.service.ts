@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { PermissionManagement, RolePermission } from '../models/permission.model';
+import { AccountPermission, PermissionManagement, RolePermission } from '../models/permission.model';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionApiService {
@@ -13,5 +13,13 @@ export class PermissionApiService {
 
   updateRole(roleId: number, permissionIds: number[]) {
     return this.http.put<RolePermission>(`${this.apiUrl}/roles/${roleId}`, { permissionIds });
+  }
+
+  updateAccount(accountId: number, roleId: number, usesCustomPermissions: boolean, permissionIds: number[]) {
+    return this.http.put<AccountPermission>(`${this.apiUrl}/accounts/${accountId}`, {
+      roleId,
+      usesCustomPermissions,
+      permissionIds,
+    });
   }
 }

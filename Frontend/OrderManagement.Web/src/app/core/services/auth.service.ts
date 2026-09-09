@@ -31,6 +31,19 @@ export class AuthService {
 
   hasPermission(code: string): boolean { return this.user()?.permissions.includes(code) ?? false; }
 
+  hasAnyPermission(codes: string[]): boolean {
+    const permissions = this.user()?.permissions ?? [];
+    return codes.some(code => permissions.includes(code));
+  }
+
+  defaultRoute(): string {
+    if (this.hasPermission('ORDER_VIEW')) return '/orders';
+    if (this.hasPermission('CUSTOMER_VIEW')) return '/customers';
+    if (this.hasPermission('PRODUCT_VIEW')) return '/products';
+    if (this.hasPermission('PERMISSION_MANAGE')) return '/permissions';
+    return '/no-access';
+  }
+
   private restore(): UserSession | null {
     try {
       const raw = localStorage.getItem(SESSION_KEY);

@@ -29,12 +29,18 @@ public sealed class AuthRepository(OrderDbContext dbContext) : IAuthRepository
               AND nq.TrangThai = 'ACTIVE' AND q.TrangThai = 'ACTIVE'
               AND (
                   nq.MaNhomQuyen = 'ADMIN'
-                  OR EXISTS (
+                  OR (tk.SuDungQuyenRieng = 1 AND EXISTS (
+                      SELECT 1
+                      FROM tbl_CapQuyenTaiKhoan cqt
+                      WHERE cqt.TaiKhoanID = tk.TaiKhoanID
+                        AND cqt.QuyenID = q.QuyenID
+                  ))
+                  OR (tk.SuDungQuyenRieng = 0 AND EXISTS (
                       SELECT 1
                       FROM tbl_CapQuyen cq
                       WHERE cq.NhomQuyenID = tk.NhomQuyenID
                         AND cq.QuyenID = q.QuyenID
-                  )
+                  ))
               )
             ORDER BY q.QuyenID;
             """;

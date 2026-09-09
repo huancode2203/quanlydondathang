@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { finalize } from 'rxjs';
-import { Permission, PermissionManagement, RolePermission } from '../../core/models/permission.model';
+import { AccountPermission, Permission, PermissionManagement, RolePermission } from '../../core/models/permission.model';
 import { PermissionApiService } from '../../core/services/permission-api.service';
 
 interface PermissionGroup {
@@ -21,6 +21,7 @@ export class PermissionManagementComponent {
   private readonly api = inject(PermissionApiService);
 
   readonly data = signal<PermissionManagement | null>(null);
+  readonly viewMode = signal<'accounts' | 'roles'>('accounts');
   readonly selectedRoleId = signal<number | null>(null);
   readonly selectedPermissionIds = signal<ReadonlySet<number>>(new Set<number>());
   readonly loading = signal(true);
@@ -28,11 +29,35 @@ export class PermissionManagementComponent {
   readonly dirty = signal(false);
   readonly error = signal('');
   readonly notice = signal('');
+  readonly accountKeyword = signal('');
+  readonly selectedAccountId = signal<number | null>(null);
+  readonly selectedAccountRoleId = signal<number | null>(null);
+  readonly selectedAccountPermissionIds = signal<ReadonlySet<number>>(new Set<number>());
+  readonly accountUsesCustomPermissions = signal(false);
+  readonly accountDirty = signal(false);
 
   readonly roles = computed(() => this.data()?.roles ?? []);
+  readonly accounts = computed(() => this.data()?.accounts ?? []);
+  readonly filteredAccounts = computed(() => {
+    const keyword = this.accountKeyword().trim().toLocaleLowerCase('vi');
+    if (!keyword) return this.accounts();
+    return this.accounts().filter(account =>
+      `${account.fullName} ${account.username} ${account.roleName}`.toLocaleLowerCase('vi').includes(keyword),
+    );
+  });
   readonly selectedRole = computed(() =>
     this.roles().find(role => role.id === this.selectedRoleId()) ?? null,
   );
+  readonly selectedAccount = computed(() =>
+    this.accounts().find(account => account.id === this.selectedAccountId()) ?? null,
+  );
+  readonly selectedAccountRole = computed(() =>
+    this.roles().find(role => role.id === this.selectedAccountRoleId()) ?? null,
+  );
+  readonly selectedAccountIsLastAdmin = computed(() => {
+    const account = this.selectedAccount();
+    return !!account?.isSystemAdmin && this.accounts().filter(x => x.isSystemAdmin).length <= 1;
+  });
   readonly groups = computed<PermissionGroup[]>(() => {
     const grouped = new Map<string, Permission[]>();
     for (const permission of this.data()?.permissions ?? []) {
@@ -60,6 +85,100 @@ export class PermissionManagementComponent {
         this.data.set(data);
         const current = data.roles.find(role => role.id === this.selectedRoleId()) ?? data.roles[0];
         if (current) this.applyRole(current);
+        const currentAccount = data.accounts.find(account => account.id === this.selectedAccountId()) ?? data.accounts[0];
+        if (currentAccount) this.applyAccount(currentAccount);
+      },
+      error: error => this.error.set(this.readError(error)),
+    });
+  }
+
+  setViewMode(mode: 'accounts' | 'roles'): void {
+    if (mode === this.viewMode() || this.saving()) return;
+    const hasChanges = this.viewMode() === 'accounts' ? this.accountDirty() : this.dirty();
+    if (hasChanges && !confirm('Bạn có thay đổi chưa lưu. Chuyển chế độ và bỏ các thay đổi này?')) return;
+    this.viewMode.set(mode);
+    this.error.set('');
+    this.notice.set('');
+  }
+
+  selectAccount(account: AccountPermission): void {
+    if (this.saving() || account.id === this.selectedAccountId()) return;
+    if (this.accountDirty() && !confirm('Bạn có thay đổi chưa lưu. Chuyển tài khoản và bỏ các thay đổi này?')) return;
+    this.applyAccount(account);
+    this.error.set('');
+    this.notice.set('');
+  }
+
+  changeAccountRole(roleId: number): void {
+    if (this.saving() || this.selectedAccountIsLastAdmin()) return;
+    const role = this.roles().find(item => item.id === roleId);
+    if (!role) return;
+    this.selectedAccountRoleId.set(role.id);
+    this.selectedAccountPermissionIds.set(new Set(role.permissionIds));
+    this.accountUsesCustomPermissions.set(false);
+    this.accountDirty.set(true);
+    this.notice.set('');
+  }
+
+  toggleAccountPermission(permissionId: number): void {
+    if (this.saving() || this.selectedAccountRole()?.isSystemAdmin) return;
+    const next = new Set(this.selectedAccountPermissionIds());
+    next.has(permissionId) ? next.delete(permissionId) : next.add(permissionId);
+    this.selectedAccountPermissionIds.set(next);
+    this.accountUsesCustomPermissions.set(true);
+    this.accountDirty.set(true);
+    this.notice.set('');
+  }
+
+  resetAccountToRole(): void {
+    const role = this.selectedAccountRole();
+    if (!role || role.isSystemAdmin || this.saving()) return;
+    this.selectedAccountPermissionIds.set(new Set(role.permissionIds));
+    this.accountUsesCustomPermissions.set(false);
+    this.accountDirty.set(true);
+    this.notice.set('');
+  }
+
+  selectAllAccountPermissions(): void {
+    if (this.saving() || this.selectedAccountRole()?.isSystemAdmin) return;
+    this.selectedAccountPermissionIds.set(new Set((this.data()?.permissions ?? []).map(x => x.id)));
+    this.accountUsesCustomPermissions.set(true);
+    this.accountDirty.set(true);
+    this.notice.set('');
+  }
+
+  clearAccountPermissions(): void {
+    if (this.saving() || this.selectedAccountRole()?.isSystemAdmin) return;
+    this.selectedAccountPermissionIds.set(new Set<number>());
+    this.accountUsesCustomPermissions.set(true);
+    this.accountDirty.set(true);
+    this.notice.set('');
+  }
+
+  saveAccount(): void {
+    const account = this.selectedAccount();
+    const role = this.selectedAccountRole();
+    if (!account || !role || !this.accountDirty() || this.saving()) return;
+
+    this.saving.set(true);
+    this.error.set('');
+    const permissionIds = [...this.selectedAccountPermissionIds()].sort((a, b) => a - b);
+    this.api.updateAccount(
+      account.id,
+      role.id,
+      this.accountUsesCustomPermissions(),
+      permissionIds,
+    ).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: updatedAccount => {
+        const current = this.data();
+        if (current) {
+          this.data.set({
+            ...current,
+            accounts: current.accounts.map(item => item.id === updatedAccount.id ? updatedAccount : item),
+          });
+        }
+        this.applyAccount(updatedAccount);
+        this.notice.set(`Đã cập nhật quyền cho tài khoản ${updatedAccount.username}.`);
       },
       error: error => this.error.set(this.readError(error)),
     });
@@ -110,6 +229,11 @@ export class PermissionManagementComponent {
           this.data.set({
             ...current,
             roles: current.roles.map(item => item.id === updatedRole.id ? updatedRole : item),
+            accounts: current.accounts.map(account =>
+              !account.usesCustomPermissions && account.roleId === updatedRole.id
+                ? { ...account, permissionIds: updatedRole.permissionIds }
+                : account,
+            ),
           });
         }
         this.applyRole(updatedRole);
@@ -123,6 +247,10 @@ export class PermissionManagementComponent {
     return this.selectedPermissionIds().has(permissionId);
   }
 
+  isAccountPermissionGranted(permissionId: number): boolean {
+    return this.selectedAccountPermissionIds().has(permissionId);
+  }
+
   grantedCount(role: RolePermission): number {
     return role.isSystemAdmin ? (this.data()?.permissions.length ?? 0) : role.permissionIds.length;
   }
@@ -131,10 +259,27 @@ export class PermissionManagementComponent {
     return group.permissions.filter(permission => this.isGranted(permission.id)).length;
   }
 
+  accountGroupGrantedCount(group: PermissionGroup): number {
+    return group.permissions.filter(permission => this.isAccountPermissionGranted(permission.id)).length;
+  }
+
+  accountInitials(account: AccountPermission): string {
+    const parts = account.fullName.trim().split(/\s+/).filter(Boolean);
+    return (parts.length > 1 ? `${parts[0][0]}${parts.at(-1)?.[0]}` : account.username.slice(0, 2)).toUpperCase();
+  }
+
   private applyRole(role: RolePermission): void {
     this.selectedRoleId.set(role.id);
     this.selectedPermissionIds.set(new Set(role.permissionIds));
     this.dirty.set(false);
+  }
+
+  private applyAccount(account: AccountPermission): void {
+    this.selectedAccountId.set(account.id);
+    this.selectedAccountRoleId.set(account.roleId);
+    this.selectedAccountPermissionIds.set(new Set(account.permissionIds));
+    this.accountUsesCustomPermissions.set(account.usesCustomPermissions);
+    this.accountDirty.set(false);
   }
 
   private featureLabel(feature: string): string {

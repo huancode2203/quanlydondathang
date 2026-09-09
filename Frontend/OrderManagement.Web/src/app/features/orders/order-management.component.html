@@ -26,7 +26,7 @@
   <div class="list-card">
     <div class="list-heading">
       <div><h2>Danh sách đơn hàng</h2><p>{{ total() }} đơn hàng được tìm thấy</p></div>
-      <button class="button primary" type="button" (click)="openCreate()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Thêm đơn hàng</button>
+      <button class="button primary" type="button" [disabled]="!auth.hasPermission('ORDER_CREATE')" (click)="openCreate()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Thêm đơn hàng</button>
     </div>
 
     @if (errorMessage()) { <div class="alert" role="alert"><strong>Chưa tải được dữ liệu.</strong><span>{{ errorMessage() }}</span><button type="button" (click)="loadOrders()">Thử lại</button></div> }
@@ -40,15 +40,15 @@
           } @else {
             @for (order of orders(); track order.id) {
               <tr>
-                <td><button class="order-code" type="button" (click)="openEdit(order)">{{ order.code }}</button><small>{{ order.itemCount }} mặt hàng</small></td>
+                <td><button class="order-code" type="button" [disabled]="!auth.hasPermission('ORDER_UPDATE')" (click)="openEdit(order)">{{ order.code }}</button><small>{{ order.itemCount }} mặt hàng</small></td>
                 <td><strong>{{ order.customerName }}</strong><small>{{ order.customerPhone || 'Chưa có SĐT' }}</small></td>
                 <td>{{ order.orderedAt | date:'dd/MM/yyyy' }}<small>{{ order.creatorName }}</small></td>
                 <td>{{ order.expectedDeliveryAt ? (order.expectedDeliveryAt | date:'dd/MM/yyyy') : 'Chưa hẹn' }}<small>{{ order.deliveryEmployeeName || 'Chưa phân công' }}</small></td>
                 <td class="money"><strong>{{ order.grandTotal | number:'1.0-0' }} ₫</strong></td>
                 <td><span [class]="'status ' + statusClass(order.status)"><i></i>{{ statusLabel(order.status) }}</span></td>
                 <td class="row-actions">
-                  <button type="button" title="Sửa đơn hàng" aria-label="Sửa đơn hàng" (click)="openEdit(order)"><svg viewBox="0 0 24 24"><path d="m4 20 4.5-1 10-10-3.5-3.5-10 10L4 20ZM13.5 7l3.5 3.5"/></svg></button>
-                  <button class="danger-icon" type="button" title="Xóa đơn hàng" aria-label="Xóa đơn hàng" (click)="askDelete(order)"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg></button>
+                  <button type="button" title="Sửa đơn hàng" aria-label="Sửa đơn hàng" [disabled]="!auth.hasPermission('ORDER_UPDATE')" (click)="openEdit(order)"><svg viewBox="0 0 24 24"><path d="m4 20 4.5-1 10-10-3.5-3.5-10 10L4 20ZM13.5 7l3.5 3.5"/></svg></button>
+                  <button class="danger-icon" type="button" title="Xóa đơn hàng" aria-label="Xóa đơn hàng" [disabled]="!auth.hasPermission('ORDER_DELETE')" (click)="askDelete(order)"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg></button>
                 </td>
               </tr>
             } @empty {
@@ -85,7 +85,7 @@
             <div class="form-grid">
               <label><span>Mã đơn hàng <b>*</b></span><input formControlName="code" placeholder="VD: DH2026001" /><small class="field-error">@if (orderForm.get('code')?.touched && orderForm.get('code')?.invalid) { Vui lòng nhập mã đơn hàng. }</small></label>
               <label><span>Trạng thái <b>*</b></span><select formControlName="status">@for (status of statuses; track status.value) {<option [value]="status.value">{{ status.label }}</option>}</select></label>
-              <label class="wide customer-select"><span>Khách hàng <b>*</b><button type="button" (click)="openCustomerForm()">+ Tạo khách hàng mới</button></span><select formControlName="customerId"><option [ngValue]="null">Chọn khách hàng</option>@for (customer of customers(); track customer.id) {<option [ngValue]="customer.id">{{ customer.code }} — {{ customer.name }} · {{ customer.extra }}</option>}</select></label>
+              <label class="wide customer-select"><span>Khách hàng <b>*</b><button type="button" [disabled]="!auth.hasPermission('CUSTOMER_MANAGE')" (click)="openCustomerForm()">+ Tạo khách hàng mới</button></span><select formControlName="customerId"><option [ngValue]="null">Chọn khách hàng</option>@for (customer of customers(); track customer.id) {<option [ngValue]="customer.id">{{ customer.code }} — {{ customer.name }} · {{ customer.extra }}</option>}</select></label>
               <label><span>Người tạo đơn</span><input [value]="creatorName()" readonly /></label>
               <label><span>Nhân viên giao hàng</span><select formControlName="deliveryEmployeeId"><option [ngValue]="null">Chưa phân công</option>@for (employee of employees(); track employee.id) {<option [ngValue]="employee.id">{{ employee.name }}</option>}</select></label>
               <label><span>Ngày đặt hàng <b>*</b></span><input type="datetime-local" formControlName="orderedAt" [min]="minOrderDate()" [max]="maxOrderDate()" /></label>

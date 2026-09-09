@@ -83,6 +83,7 @@ CREATE TABLE tbl_TaiKhoan (
     TenDangNhap     VARCHAR(100) NOT NULL UNIQUE,
     MatKhauHash     VARCHAR(500) NOT NULL,
     TrangThai       VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    SuDungQuyenRieng BIT NOT NULL DEFAULT 0,
     LanDangNhapCuoi DATETIME2 NULL,
     NgayTao         DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
     NgayCapNhat     DATETIME2 NULL,
@@ -90,6 +91,17 @@ CREATE TABLE tbl_TaiKhoan (
     FOREIGN KEY (NhomQuyenID) REFERENCES tbl_NhomQuyen(NhomQuyenID),
     CONSTRAINT CK_TaiKhoan_TrangThai
         CHECK (TrangThai IN ('ACTIVE', 'INACTIVE', 'LOCKED'))
+);
+GO
+
+CREATE TABLE tbl_CapQuyenTaiKhoan (
+    CapQuyenTaiKhoanID INT IDENTITY(1,1) PRIMARY KEY,
+    TaiKhoanID         INT NOT NULL,
+    QuyenID            INT NOT NULL,
+    NgayCap            DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    FOREIGN KEY (TaiKhoanID) REFERENCES tbl_TaiKhoan(TaiKhoanID),
+    FOREIGN KEY (QuyenID) REFERENCES tbl_Quyen(QuyenID),
+    CONSTRAINT UQ_CapQuyenTaiKhoan UNIQUE (TaiKhoanID, QuyenID)
 );
 GO
 

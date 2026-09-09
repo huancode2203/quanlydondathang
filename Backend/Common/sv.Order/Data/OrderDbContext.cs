@@ -12,6 +12,8 @@ public sealed class OrderDbContext(DbContextOptions<OrderDbContext> options) : D
     public DbSet<RoleEntity> Roles => Set<RoleEntity>();
     public DbSet<PermissionEntity> Permissions => Set<PermissionEntity>();
     public DbSet<RolePermissionEntity> RolePermissions => Set<RolePermissionEntity>();
+    public DbSet<AccountEntity> Accounts => Set<AccountEntity>();
+    public DbSet<AccountPermissionEntity> AccountPermissions => Set<AccountPermissionEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -117,5 +119,27 @@ public sealed class OrderDbContext(DbContextOptions<OrderDbContext> options) : D
         rolePermission.HasIndex(x => new { x.RoleId, x.PermissionId }).IsUnique();
         rolePermission.HasOne(x => x.Role).WithMany(x => x.Permissions).HasForeignKey(x => x.RoleId);
         rolePermission.HasOne(x => x.Permission).WithMany(x => x.Roles).HasForeignKey(x => x.PermissionId);
+
+        var account = modelBuilder.Entity<AccountEntity>();
+        account.ToTable("tbl_TaiKhoan");
+        account.HasKey(x => x.Id);
+        account.Property(x => x.Id).HasColumnName("TaiKhoanID");
+        account.Property(x => x.EmployeeId).HasColumnName("NhanVienID");
+        account.Property(x => x.RoleId).HasColumnName("NhomQuyenID");
+        account.Property(x => x.Username).HasColumnName("TenDangNhap").HasMaxLength(100).IsUnicode(false);
+        account.Property(x => x.Status).HasColumnName("TrangThai").HasMaxLength(20).IsUnicode(false);
+        account.Property(x => x.UsesCustomPermissions).HasColumnName("SuDungQuyenRieng");
+        account.HasOne(x => x.Role).WithMany(x => x.Accounts).HasForeignKey(x => x.RoleId);
+
+        var accountPermission = modelBuilder.Entity<AccountPermissionEntity>();
+        accountPermission.ToTable("tbl_CapQuyenTaiKhoan");
+        accountPermission.HasKey(x => x.Id);
+        accountPermission.Property(x => x.Id).HasColumnName("CapQuyenTaiKhoanID");
+        accountPermission.Property(x => x.AccountId).HasColumnName("TaiKhoanID");
+        accountPermission.Property(x => x.PermissionId).HasColumnName("QuyenID");
+        accountPermission.Property(x => x.GrantedAt).HasColumnName("NgayCap").ValueGeneratedOnAdd();
+        accountPermission.HasIndex(x => new { x.AccountId, x.PermissionId }).IsUnique();
+        accountPermission.HasOne(x => x.Account).WithMany(x => x.Permissions).HasForeignKey(x => x.AccountId);
+        accountPermission.HasOne(x => x.Permission).WithMany(x => x.Accounts).HasForeignKey(x => x.PermissionId);
     }
 }

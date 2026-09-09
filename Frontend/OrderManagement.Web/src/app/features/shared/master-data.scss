@@ -25,6 +25,8 @@ td small { color: #7d91a0; margin-top: 4px; }
 .actions { text-align: right; white-space: nowrap; }
 .actions button { width: 34px; height: 34px; border: 1px solid #dce6ed; border-radius: 8px; background: #fff; color: #46657a; margin-left: 6px; display: inline-grid; place-items: center; cursor: pointer; }
 .actions button:hover { border-color: #16a7c5; color: #087f98; background: #f5fbfc; }
+.actions button:disabled { opacity: .38; cursor: not-allowed; }
+.actions button:disabled:hover { border-color: #dce6ed; color: #46657a; background: #fff; }
 .actions button svg { width: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .actions button.delete { color: #c93240; }
 .actions button.delete:hover { border-color: #e66772; background: #fff5f5; }

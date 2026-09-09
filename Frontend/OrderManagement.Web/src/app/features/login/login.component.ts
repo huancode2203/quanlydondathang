@@ -23,7 +23,7 @@ export class LoginComponent {
     password: ['123456', Validators.required],
   });
 
-  constructor() { if (this.auth.isAuthenticated()) void this.router.navigate(['/orders']); }
+  constructor() { if (this.auth.isAuthenticated()) void this.router.navigate([this.auth.defaultRoute()]); }
 
   submit(): void {
     if (this.form.invalid) return;
@@ -31,7 +31,7 @@ export class LoginComponent {
     this.auth.login(this.form.value.username!, this.form.value.password!).pipe(
       finalize(() => this.loading.set(false)),
     ).subscribe({
-      next: () => void this.router.navigate(['/orders']),
+      next: () => void this.router.navigate([this.auth.defaultRoute()]),
       error: (error: HttpErrorResponse) => this.error.set(error.error?.message ?? 'Không thể kết nối đến máy chủ.'),
     });
   }

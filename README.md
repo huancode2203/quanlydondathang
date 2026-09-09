@@ -18,6 +18,8 @@
 - Tính thành tiền từng dòng và tổng thanh toán.
 - Kiểm tra quyền từ `tbl_TaiKhoan`, `tbl_NhomQuyen`, `tbl_CapQuyen`, `tbl_Quyen`.
 - Quản lý quyền theo nhóm tài khoản; nhóm Admin được bảo vệ và luôn có toàn bộ quyền.
+- Phân quyền riêng cho từng tài khoản, chọn nhóm để nhận nhanh quyền mặc định rồi tùy chỉnh từng quyền.
+- Tự ẩn menu phân hệ khi tài khoản không có quyền xem và chặn truy cập trực tiếp bằng route guard.
 - Giao diện responsive bằng Angular.
 
 ## Kiến trúc
@@ -92,12 +94,13 @@ Truy cập `http://localhost:4200`.
 | GET/POST/PUT/DELETE | `/api/products` | Quản lý hàng hóa và tồn kho | `PRODUCT_*` |
 | GET | `/api/permissions` | Danh sách nhóm và quyền | `PERMISSION_MANAGE` |
 | PUT | `/api/permissions/roles/{id}` | Cập nhật quyền của nhóm | `PERMISSION_MANAGE` |
+| PUT | `/api/permissions/accounts/{id}` | Đổi nhóm và cập nhật quyền riêng của tài khoản | `PERMISSION_MANAGE` |
 
 Angular gửi JWT Bearer tự động. Người tạo đơn được lấy từ claim `employee_id`, không lấy từ dữ liệu do frontend tự nhập. Quyền của một tài khoản được ghi vào JWT khi đăng nhập, vì vậy người dùng cần đăng nhập lại để nhận cấu hình quyền mới.
 
 ## Database
 
-Script gốc nằm tại `Database/QuanLyDonDatHangDB.sql`. File `Database/002_AddProductStock.sql` nâng cấp database hiện có với cột `SoLuongTon`; `Database/003_EnsureAdminFullPermissions.sql` bảo đảm nhóm Admin có mọi quyền mà không tạo bản ghi trùng khi chạy lại.
+Script gốc nằm tại `Database/QuanLyDonDatHangDB.sql`. File `Database/002_AddProductStock.sql` nâng cấp database hiện có với cột `SoLuongTon`; `Database/003_EnsureAdminFullPermissions.sql` bảo đảm nhóm Admin có mọi quyền; `Database/004_AddAccountPermissions.sql` bổ sung quyền riêng theo tài khoản. Các script nâng cấp đều có thể chạy lại an toàn.
 
 Phân tích chi tiết công dụng từng folder/file nằm trong `docs/KIEN_TRUC_VA_CONG_DUNG_FILE.md`.
 

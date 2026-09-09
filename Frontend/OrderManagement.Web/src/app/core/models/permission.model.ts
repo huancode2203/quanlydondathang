@@ -19,4 +19,17 @@ export interface RolePermission {
 export interface PermissionManagement {
   roles: RolePermission[];
   permissions: Permission[];
+  accounts: AccountPermission[];
+}
+
+export interface AccountPermission {
+  id: number;
+  username: string;
+  fullName: string;
+  roleId: number;
+  roleCode: string;
+  roleName: string;
+  isSystemAdmin: boolean;
+  usesCustomPermissions: boolean;
+  permissionIds: number[];
 }

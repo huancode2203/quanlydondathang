@@ -43,11 +43,14 @@ td strong,td small { display: block; }
 td strong { color: #173b57; font-weight: 700; }
 td small { color: #7d91a0; margin-top: 5px; font-size: .72rem; }
 .order-code { padding: 0; border: 0; background: transparent; color: #087f98; font-weight: 800; }
+.order-code:disabled { color: #46657a; cursor: default; }
 .money { text-align: right; white-space: nowrap; }
 .actions-col { text-align: center; }
 .row-actions { text-align: center; white-space: nowrap; }
 .row-actions button { width: 34px; height: 34px; border: 1px solid #dce6ed; border-radius: 8px; background: #fff; color: #46657a; margin: 0 3px; }
 .row-actions button:hover { border-color: #16a7c5; color: #087f98; }
+.row-actions button:disabled { opacity: .38; cursor: not-allowed; }
+.row-actions button:disabled:hover { border-color: #dce6ed; color: #46657a; background: #fff; }
 .row-actions button.danger-icon:hover { border-color: #e66772; color: #c93240; background: #fff5f5; }
 .row-actions svg { width: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; }
 .status { display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; padding: 6px 9px; font-size: .7rem; font-weight: 700; white-space: nowrap; background: #eef3f6; color: #526d82; }
@@ -85,7 +88,7 @@ td small { color: #7d91a0; margin-top: 5px; font-size: .72rem; }
 .section-title .add-line { margin-left: auto; border: 1px solid #b7dde5; background: #eef9fb; color: #087f98; padding: 8px 11px; border-radius: 8px; font-size: .75rem; font-weight: 800; }
 .form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px 16px; }
 .form-grid .wide { grid-column: 1/-1; }
-.customer-select > span { display:flex;align-items:center;justify-content:space-between;gap:10px; }.customer-select > span button{border:0;background:transparent;color:#087f98;font-size:.72rem;font-weight:800;padding:0}.form-grid input[readonly]{background:#f2f5f7;color:#61788a}
+.customer-select > span { display:flex;align-items:center;justify-content:space-between;gap:10px; }.customer-select > span button{border:0;background:transparent;color:#087f98;font-size:.72rem;font-weight:800;padding:0}.customer-select > span button:disabled{color:#8ba0ae;cursor:not-allowed}.form-grid input[readonly]{background:#f2f5f7;color:#61788a}
 .field-error { min-height: 14px; color: #c73542; font-size: .65rem; }
 .item-list { overflow-x: auto; }
 .item-head,.item-row { min-width: 850px; display: grid; grid-template-columns: minmax(260px,2.1fr) .65fr 1fr .65fr 1.05fr 38px; gap: 9px; align-items: center; }
