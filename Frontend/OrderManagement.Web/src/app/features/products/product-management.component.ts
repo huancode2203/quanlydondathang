@@ -12,7 +12,11 @@ export class ProductManagementComponent {
   readonly items=signal<Product[]>([]);readonly dialogOpen=signal(false);readonly editingId=signal<number|null>(null);readonly saving=signal(false);readonly error=signal('');keyword='';
   readonly form=this.fb.nonNullable.group({code:['',Validators.required],name:['',Validators.required],unit:['Cái',Validators.required],price:[0,[Validators.required,Validators.min(0)]],stockQuantity:[0,[Validators.required,Validators.min(0)]],description:['']});
   constructor(){this.load()}
-  load(){this.api.getProducts(this.keyword).subscribe({next:x=>this.items.set(x),error:e=>this.error.set(this.readError(e))})}
+  load(){this.api.getProducts(this.keyword).subscribe({next:x=>this.items.set(x.map(item=>({
+    ...item,
+    orderedQuantity:item.orderedQuantity??0,
+    availableQuantity:item.availableQuantity??item.stockQuantity,
+  }))),error:e=>this.error.set(this.readError(e))})}
   openCreate(){this.editingId.set(null);this.form.reset({code:`HH${String(Date.now()).slice(-5)}`,unit:'Cái',price:0,stockQuantity:0});this.dialogOpen.set(true)}
   openEdit(x:Product){this.editingId.set(x.id);this.form.reset({code:x.code,name:x.name,unit:x.unit,price:x.price,stockQuantity:x.stockQuantity,description:x.description??''});this.dialogOpen.set(true)}
   save(){if(this.form.invalid){this.form.markAllAsTouched();return}const value=this.form.getRawValue() as SaveProduct;const id=this.editingId();const op=id?this.api.updateProduct(id,value):this.api.createProduct(value);this.saving.set(true);op.pipe(finalize(()=>this.saving.set(false))).subscribe({next:()=>{this.dialogOpen.set(false);this.load()},error:e=>this.error.set(this.readError(e))})}

@@ -90,12 +90,11 @@
           <section class="form-section">
             <div class="section-title"><span>02</span><div><h3>Chi tiết hàng hóa</h3><p>Đơn giá được lấy từ danh mục và có thể điều chỉnh</p></div><button class="add-line" type="button" (click)="addItem()">+ Thêm dòng</button></div>
             <div class="item-list" formArrayName="items">
-              <div class="item-head"><span>Hàng hóa</span><span>Số lượng</span><span>Tồn sau đặt / thực tế</span><span>Đơn giá</span><span>Giảm %</span><span>Thành tiền</span><span></span></div>
+              <div class="item-head"><span>Hàng hóa</span><span>Số lượng</span><span>Đơn giá</span><span>Giảm %</span><span>Thành tiền</span><span></span></div>
               @for (group of items.controls; track $index; let i = $index) {
-                <div class="item-row" [class.product-shortage]="group.get('productId')?.value && remainingStock(group) < 0" [formGroupName]="i">
+                <div class="item-row" [formGroupName]="i">
                   <div class="product-cell"><select formControlName="productId" (change)="productChanged(group, i)"><option [ngValue]="null">Chọn hàng hóa</option>@for (product of products(); track product.id) {<option [ngValue]="product.id" [disabled]="isProductUsed(product.id, i)">{{ product.code }} — {{ product.name }}</option>}</select></div>
                   <input type="number" min="0.01" step="0.01" formControlName="quantity" aria-label="Số lượng" />
-                  <div class="stock-balance" [class.shortage]="group.get('productId')?.value && remainingStock(group) < 0" [class.unselected]="!group.get('productId')?.value"><strong>{{ group.get('productId')?.value ? (remainingStock(group) | number:'1.0-2') : '—' }}</strong><span>/ {{ group.get('productId')?.value ? (productStock(group) | number:'1.0-2') : '—' }}</span>@if (group.get('productId')?.value && remainingStock(group) < 0) {<small>Thiếu {{ -remainingStock(group) | number:'1.0-2' }}</small>}</div>
                   <input type="number" min="0" step="1000" formControlName="unitPrice" aria-label="Đơn giá" />
                   <input type="number" min="0" max="100" formControlName="discountPercent" aria-label="Phần trăm giảm giá" />
                   <strong>{{ lineTotal(group) | number:'1.0-0' }} ₫</strong>

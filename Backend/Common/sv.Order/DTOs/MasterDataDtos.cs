@@ -32,6 +32,8 @@ public sealed class ProductDto
     public string Name { get; init; } = string.Empty;
     public string Unit { get; init; } = string.Empty;
     public decimal Price { get; init; }
+    public decimal OrderedQuantity { get; init; }
+    public decimal AvailableQuantity { get; init; }
     public decimal StockQuantity { get; init; }
     public string? Description { get; init; }
 }

@@ -222,14 +222,6 @@ export class OrderManagementComponent implements OnInit {
     return this.items.controls.some((control, index) => index !== currentIndex && Number(control.get('productId')?.value) === productId);
   }
 
-  productStock(group: AbstractControl): number {
-    return this.products().find(x => x.id === Number(group.get('productId')?.value))?.stockQuantity ?? 0;
-  }
-
-  remainingStock(group: AbstractControl): number {
-    return this.productStock(group) - Number(group.get('quantity')?.value || 0);
-  }
-
   saveOrder(): void {
     if (this.orderForm.invalid || this.items.length === 0) {
       this.orderForm.markAllAsTouched();

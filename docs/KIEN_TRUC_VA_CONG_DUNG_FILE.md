@@ -159,5 +159,6 @@ Trigger `trg_CapNhatTongTienDonHang` tính lại `TongTienHang`. `ThanhTien` và
 - Ngày/giờ giao dự kiến bắt buộc, sau hiện tại và sau ngày đặt.
 - Một hàng hóa chỉ xuất hiện một lần trong đơn.
 - Số lượng đặt được lớn hơn tồn kho nhưng giao diện cảnh báo.
+- Trang Hàng hóa tính `tồn sau đơn = tồn thực tế - số lượng trong các đơn chưa giao/chưa hủy`; kết quả âm và sản phẩm thiếu được tô đỏ.
 - Tổng thanh toán âm bị chặn ở Angular và Repository.
 - Lọc nâng cao theo người tạo, người giao, khoảng tổng tiền; sắp xếp ngày giao/tổng tiền.

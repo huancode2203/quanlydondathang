@@ -15,7 +15,13 @@ th { background: #f7f9fb; color: #61788a; padding: 12px 16px; text-align: left; 
 td { padding: 14px 16px; border-top: 1px solid #edf1f4; font-size: .82rem; color: #425e72; }
 td strong,td small { display: block; }
 td small { color: #7d91a0; margin-top: 4px; }
-.stock { font-weight: 800; color: #087f98; }
+.stock-balance { display: inline-flex; align-items: baseline; gap: 4px; min-width: 86px; padding: 6px 9px; border: 1px solid #cfe4e8; border-radius: 8px; background: #f0f9fa; color: #537083; white-space: nowrap; }
+.stock-balance b { color: #17865d; font-size: .88rem; }
+.stock-balance.shortage { border-color: #eaa5ac; background: #fff0f1; }
+.stock-balance.shortage b,.stock-shortage-row .product-name strong,.shortage-note { color: #c93240; }
+.shortage-note { font-weight: 800; }
+.stock-shortage-row { background: #fff7f7; box-shadow: inset 3px 0 #d94452; }
+.stock-shortage-row:hover { background: #fff1f2; }
 .actions { text-align: right; white-space: nowrap; }
 .actions button { width: 34px; height: 34px; border: 1px solid #dce6ed; border-radius: 8px; background: #fff; color: #46657a; margin-left: 6px; display: inline-grid; place-items: center; cursor: pointer; }
 .actions button:hover { border-color: #16a7c5; color: #087f98; background: #f5fbfc; }

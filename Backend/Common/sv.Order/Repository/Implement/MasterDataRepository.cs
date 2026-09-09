@@ -62,10 +62,19 @@ public sealed class MasterDataRepository(OrderDbContext dbContext) : IMasterData
     {
         const string sql = """
             SELECT HangHoaID AS Id, MaHang AS Code, TenHang AS Name, DonViTinh AS Unit,
-                   GiaBan AS Price, SoLuongTon AS StockQuantity, MoTa AS Description
-            FROM tbl_HangHoa
-            WHERE IsDeleted = 0 AND (@Keyword IS NULL OR MaHang LIKE @Pattern OR TenHang LIKE @Pattern)
-            ORDER BY TenHang;
+                   GiaBan AS Price, ISNULL(dh.OrderedQuantity, 0) AS OrderedQuantity,
+                   SoLuongTon - ISNULL(dh.OrderedQuantity, 0) AS AvailableQuantity,
+                   SoLuongTon AS StockQuantity, MoTa AS Description
+            FROM tbl_HangHoa h
+            OUTER APPLY (
+                SELECT SUM(ct.SoLuong) AS OrderedQuantity
+                FROM tbl_ChiTietDonDatHang ct
+                INNER JOIN tbl_DonDatHang d ON d.DonDatHangID = ct.DonDatHangID
+                WHERE ct.HangHoaID = h.HangHoaID
+                  AND d.TrangThai NOT IN ('DA_GIAO', 'DA_HUY')
+            ) dh
+            WHERE h.IsDeleted = 0 AND (@Keyword IS NULL OR h.MaHang LIKE @Pattern OR h.TenHang LIKE @Pattern)
+            ORDER BY h.TenHang;
             """;
         var key = string.IsNullOrWhiteSpace(keyword) ? null : keyword.Trim();
         var connection = dbContext.Database.GetDbConnection();
@@ -83,7 +92,7 @@ public sealed class MasterDataRepository(OrderDbContext dbContext) : IMasterData
         };
         dbContext.Products.Add(entity);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return Map(entity);
+        return await GetProductAsync(entity.Id, cancellationToken);
     }
 
     public async Task<ProductDto?> UpdateProductAsync(int id, SaveProductRequest request, CancellationToken cancellationToken)
@@ -95,7 +104,7 @@ public sealed class MasterDataRepository(OrderDbContext dbContext) : IMasterData
         entity.Price = request.Price; entity.StockQuantity = request.StockQuantity;
         entity.Description = Clean(request.Description); entity.UpdatedAt = DateTime.Now;
         await dbContext.SaveChangesAsync(cancellationToken);
-        return Map(entity);
+        return await GetProductAsync(entity.Id, cancellationToken);
     }
 
     public async Task<bool> DeleteProductAsync(int id, CancellationToken cancellationToken)
@@ -119,7 +128,27 @@ public sealed class MasterDataRepository(OrderDbContext dbContext) : IMasterData
             throw new InvalidOperationException($"Mã hàng hóa {code} đã tồn tại.");
     }
 
+    private async Task<ProductDto> GetProductAsync(int id, CancellationToken token)
+    {
+        const string sql = """
+            SELECT h.HangHoaID AS Id, h.MaHang AS Code, h.TenHang AS Name, h.DonViTinh AS Unit,
+                   h.GiaBan AS Price, ISNULL(dh.OrderedQuantity, 0) AS OrderedQuantity,
+                   h.SoLuongTon - ISNULL(dh.OrderedQuantity, 0) AS AvailableQuantity,
+                   h.SoLuongTon AS StockQuantity, h.MoTa AS Description
+            FROM tbl_HangHoa h
+            OUTER APPLY (
+                SELECT SUM(ct.SoLuong) AS OrderedQuantity
+                FROM tbl_ChiTietDonDatHang ct
+                INNER JOIN tbl_DonDatHang d ON d.DonDatHangID = ct.DonDatHangID
+                WHERE ct.HangHoaID = h.HangHoaID
+                  AND d.TrangThai NOT IN ('DA_GIAO', 'DA_HUY')
+            ) dh
+            WHERE h.HangHoaID = @Id;
+            """;
+        var connection = dbContext.Database.GetDbConnection();
+        return await connection.QuerySingleAsync<ProductDto>(new CommandDefinition(sql, new { Id = id }, cancellationToken: token));
+    }
+
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     private static CustomerDto Map(CustomerEntity x) => new() { Id = x.Id, Code = x.Code, Name = x.Name, Phone = x.Phone, Email = x.Email, Address = x.Address, TaxCode = x.TaxCode, Note = x.Note };
-    private static ProductDto Map(ProductEntity x) => new() { Id = x.Id, Code = x.Code, Name = x.Name, Unit = x.Unit, Price = x.Price, StockQuantity = x.StockQuantity, Description = x.Description };
 }
