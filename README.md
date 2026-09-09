@@ -48,33 +48,26 @@ SQL Server / QuanLyDonDatHangDB
 Chuỗi kết nối nằm tại `Backend/Services/Order/Order.Api/appsettings.json`.
 
 ## Chạy dự án
-
-### Chạy bằng VS Code
-
-Mở thư mục `E:\QuanLyDonDatHang`, nhấn `Ctrl+Shift+B` và chọn task `Run full project`. VS Code sẽ mở ba terminal chạy Order API, API Gateway và Angular.
-
-### Chạy thủ công
-
 Mở ba terminal.
 
 Terminal 1 — Order API:
 
 ```powershell
-cd E:\QuanLyDonDatHang\Backend\Services\Order\Order.Api
+cd ...\Backend\Services\Order\Order.Api
 dotnet run
 ```
 
 Terminal 2 — API Gateway:
 
 ```powershell
-cd E:\QuanLyDonDatHang\Backend\APIGateway
+cd ...\Backend\APIGateway
 dotnet run
 ```
 
 Terminal 3 — Angular:
 
 ```powershell
-cd E:\QuanLyDonDatHang\Frontend\OrderManagement.Web
+cd ...\Frontend\OrderManagement.Web
 npm install
 npm start
 ```
@@ -99,8 +92,4 @@ Angular gửi JWT Bearer tự động. Người tạo đơn được lấy từ 
 
 ## Database
 
-Script gốc nằm tại `Database/QuanLyDonDatHangDB.sql`. File `Database/002_AddProductStock.sql` nâng cấp database hiện có với cột `SoLuongTon`.
-
-Phân tích chi tiết công dụng từng folder/file nằm trong `docs/KIEN_TRUC_VA_CONG_DUNG_FILE.md`.
-
-> Máy hiện tại chỉ có .NET SDK 11 Preview nên backend đang target `net11.0`. Có thể chuyển xuống bản .NET LTS khi cài SDK tương ứng.
+Script gốc nằm tại `Database/QuanLyDonDatHangDB.sql`. File `Database/002_AddProductStock.sql`
