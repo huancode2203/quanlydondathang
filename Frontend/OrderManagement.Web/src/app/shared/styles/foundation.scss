@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --ui-font: 'Be Vietnam Pro', system-ui, sans-serif;
+  --ui-page-bg: #f3f6f9;
+  --ui-surface: #fff;
+  --ui-text: #243b53;
+  --ui-heading: #173b57;
+  --ui-muted: #72889a;
+  --ui-primary: #087f98;
+  --ui-primary-soft: #e7f7fa;
+  --ui-border: #dce6ed;
+  --ui-danger: #c93240;
+  --ui-radius: 16px;
+  --ui-shadow: 0 10px 32px rgba(16, 42, 67, .055);
+  font-family: var(--ui-font);
+  color: var(--ui-text);
+  background: var(--ui-page-bg);
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  min-width: 320px;
+  background: var(--ui-page-bg);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: radial-gradient(circle at 88% 5%, rgba(22, 167, 197, .08), transparent 24rem), var(--ui-page-bg);
+}
+
+button,
+input,
+select,
+textarea { font: inherit; }
+
+button { cursor: pointer; }

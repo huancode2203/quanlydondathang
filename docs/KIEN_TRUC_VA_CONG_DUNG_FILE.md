@@ -118,7 +118,7 @@ Interface không chứa SQL hoặc phần thân hàm.
 | `package.json` | Dependency và lệnh `start`, `build`, `test`. |
 | `src/main.ts` | Điểm khởi động Angular. |
 | `src/index.html` | HTML gốc và tiêu đề. |
-| `src/styles.scss` | Font, nền và CSS toàn cục. |
+| `src/styles.scss` | Điểm nạp duy nhất cho hệ thống CSS dùng chung. |
 
 ### `src/app`
 
@@ -126,7 +126,6 @@ Interface không chứa SQL hoặc phần thân hàm.
 |---|---|
 | `app.ts` | Component gốc, phiên đăng nhập và đăng xuất. |
 | `app.html` | Sidebar, menu và vùng `router-outlet`. |
-| `app.scss` | Giao diện khung và responsive. |
 | `app.config.ts` | Router, HttpClient và interceptor JWT. |
 | `app.routes.ts` | Route login/orders/customers/products/permissions và các guard. |
 | `app.spec.ts` | Unit test component gốc. |
@@ -152,9 +151,12 @@ Interface không chứa SQL hoặc phần thân hàm.
 | `products/` | Danh sách và CRUD hàng hóa/tồn kho đơn giản. |
 | `permissions/` | Chọn nhóm tài khoản và cấp/bỏ quyền; khóa toàn quyền của Admin. |
 | `no-access/` | Thông báo khi tài khoản chưa được cấp quyền xem phân hệ nào. |
-| `shared/master-data.scss` | CSS dùng chung cho hai màn hình danh mục. |
+| `shared/ui/page-toolbar.component.ts` | Thanh tiêu đề, mô tả, tìm kiếm và vùng nút thao tác dùng lại ở các màn hình. |
+| `shared/styles/foundation.scss` | Token màu, font, nền và quy tắc nền tảng của toàn ứng dụng. |
+| `shared/styles/index.scss` | Nạp toàn bộ stylesheet dùng chung từ một đầu mối. |
+| `shared/styles/*.scss` | CSS tập trung cho shell, form, danh mục, đơn hàng và phân quyền; không đặt CSS trong feature. |
 
-Mỗi feature gồm `.ts` xử lý logic, `.html` hiển thị và `.scss` định dạng.
+Mỗi feature chỉ giữ `.ts` xử lý logic và `.html` lắp các shared component cần dùng. Khi đổi giao diện của thành phần dùng chung, sửa tại `shared/ui` và `shared/styles`, không thêm CSS riêng vào từng màn hình.
 
 ## 5. Database
 

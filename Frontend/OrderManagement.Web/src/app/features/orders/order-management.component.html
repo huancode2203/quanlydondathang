@@ -24,10 +24,9 @@
   </form>
 
   <div class="list-card">
-    <div class="list-heading">
-      <div><h2>Danh sách đơn hàng</h2><p>{{ total() }} đơn hàng được tìm thấy</p></div>
+    <app-page-toolbar title="Danh sách đơn hàng" [description]="total() + ' đơn hàng được tìm thấy'">
       <button class="button primary" type="button" [disabled]="!auth.hasPermission('ORDER_CREATE')" (click)="openCreate()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Thêm đơn hàng</button>
-    </div>
+    </app-page-toolbar>
 
     @if (errorMessage()) { <div class="alert" role="alert"><strong>Chưa tải được dữ liệu.</strong><span>{{ errorMessage() }}</span><button type="button" (click)="loadOrders()">Thử lại</button></div> }
 

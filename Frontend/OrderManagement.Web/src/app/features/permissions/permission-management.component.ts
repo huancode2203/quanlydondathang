@@ -15,7 +15,6 @@ interface PermissionGroup {
   selector: 'app-permission-management',
   standalone: true,
   templateUrl: './permission-management.component.html',
-  styleUrl: './permission-management.component.scss',
 })
 export class PermissionManagementComponent {
   private readonly api = inject(PermissionApiService);

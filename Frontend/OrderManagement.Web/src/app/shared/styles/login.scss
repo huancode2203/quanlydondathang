@@ -1,7 +1,6 @@
-:host {
+app-login {
   display: block;
   min-height: 100vh;
-}
 
 .login-page {
   min-height: 100vh;
@@ -149,4 +148,5 @@ button:disabled {
     padding: 28px 22px;
     border-radius: 18px;
   }
+}
 }

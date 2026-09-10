@@ -8,13 +8,13 @@ import { OrderApiService } from '../../core/services/order-api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { MasterDataApiService } from '../../core/services/master-data-api.service';
 import { SaveCustomer } from '../../core/models/master-data.model';
+import { PageToolbarComponent } from '../../shared/ui/page-toolbar.component';
 
 @Component({
   selector: 'app-order-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, PageToolbarComponent],
   templateUrl: './order-management.component.html',
-  styleUrl: './order-management.component.scss',
 })
 export class OrderManagementComponent implements OnInit {
   private readonly fb = inject(UntypedFormBuilder);

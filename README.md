@@ -20,6 +20,8 @@
 - Quản lý quyền theo nhóm tài khoản; nhóm Admin được bảo vệ và luôn có toàn bộ quyền.
 - Phân quyền riêng cho từng tài khoản, chọn nhóm để nhận nhanh quyền mặc định rồi tùy chỉnh từng quyền.
 - Tự ẩn menu phân hệ khi tài khoản không có quyền xem và chặn truy cập trực tiếp bằng route guard.
+- Thanh công cụ đầu trang dùng shared component; toàn bộ CSS được quản lý tập trung trong `shared/styles`, màn hình nghiệp vụ không khai báo CSS riêng.
+- Khu vực tài khoản/phân quyền co giãn theo màn hình và không tạo thanh cuộn ngang.
 - Giao diện responsive bằng Angular.
 
 ## Kiến trúc

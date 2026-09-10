@@ -1,16 +1,10 @@
 <section class="page-card">
-  <div class="page-tools">
-    <div>
-      <h2>Hàng hóa</h2>
-      <p>Đối chiếu đơn đang xử lý với số lượng tồn thực tế</p>
-    </div>
-    <div class="tool-actions">
-      <input class="search" placeholder="Tìm mã hoặc tên hàng" [value]="keyword"
-        (input)="keyword=$any($event.target).value" (keyup.enter)="load()" />
-      <button class="primary" type="button" (click)="openCreate()" [disabled]="!auth.hasPermission('PRODUCT_MANAGE')">+
-        Thêm hàng hóa</button>
-    </div>
-  </div>
+  <app-page-toolbar title="Hàng hóa" description="Đối chiếu đơn đang xử lý với số lượng tồn thực tế">
+    <input class="search" placeholder="Tìm mã hoặc tên hàng" [value]="keyword"
+      (input)="keyword=$any($event.target).value" (keyup.enter)="load()" />
+    <button class="primary" type="button" (click)="openCreate()"
+      [disabled]="!auth.hasPermission('PRODUCT_MANAGE')">+ Thêm hàng hóa</button>
+  </app-page-toolbar>
   @if(error()){<div class="error">{{error()}}</div>}
   <div class="data-wrap">
     <table>

@@ -5,8 +5,9 @@ import { finalize } from 'rxjs';
 import { Customer, SaveCustomer } from '../../core/models/master-data.model';
 import { AuthService } from '../../core/services/auth.service';
 import { MasterDataApiService } from '../../core/services/master-data-api.service';
+import { PageToolbarComponent } from '../../shared/ui/page-toolbar.component';
 
-@Component({selector:'app-customer-management',standalone:true,imports:[ReactiveFormsModule],templateUrl:'./customer-management.component.html',styleUrl:'../shared/master-data.scss'})
+@Component({selector:'app-customer-management',standalone:true,imports:[ReactiveFormsModule,PageToolbarComponent],templateUrl:'./customer-management.component.html'})
 export class CustomerManagementComponent {
   private readonly api=inject(MasterDataApiService);private readonly fb=inject(FormBuilder);readonly auth=inject(AuthService);
   readonly items=signal<Customer[]>([]);readonly dialogOpen=signal(false);readonly editingId=signal<number|null>(null);readonly saving=signal(false);readonly error=signal('');
