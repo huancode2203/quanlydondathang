@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { finalize } from 'rxjs';
-import { AccountPermission, Permission, PermissionManagement, RolePermission } from '../../core/models/permission.model';
+import { AccountPermission, Permission, PermissionManagement } from '../../core/models/permission.model';
 import { PermissionApiService } from '../../core/services/permission-api.service';
 
 interface PermissionGroup {
@@ -20,12 +20,8 @@ export class PermissionManagementComponent {
   private readonly api = inject(PermissionApiService);
 
   readonly data = signal<PermissionManagement | null>(null);
-  readonly viewMode = signal<'accounts' | 'roles'>('accounts');
-  readonly selectedRoleId = signal<number | null>(null);
-  readonly selectedPermissionIds = signal<ReadonlySet<number>>(new Set<number>());
   readonly loading = signal(true);
   readonly saving = signal(false);
-  readonly dirty = signal(false);
   readonly error = signal('');
   readonly notice = signal('');
   readonly accountKeyword = signal('');
@@ -44,9 +40,6 @@ export class PermissionManagementComponent {
       `${account.fullName} ${account.username} ${account.roleName}`.toLocaleLowerCase('vi').includes(keyword),
     );
   });
-  readonly selectedRole = computed(() =>
-    this.roles().find(role => role.id === this.selectedRoleId()) ?? null,
-  );
   readonly selectedAccount = computed(() =>
     this.accounts().find(account => account.id === this.selectedAccountId()) ?? null,
   );
@@ -82,22 +75,11 @@ export class PermissionManagementComponent {
     this.api.getPermissions().pipe(finalize(() => this.loading.set(false))).subscribe({
       next: data => {
         this.data.set(data);
-        const current = data.roles.find(role => role.id === this.selectedRoleId()) ?? data.roles[0];
-        if (current) this.applyRole(current);
         const currentAccount = data.accounts.find(account => account.id === this.selectedAccountId()) ?? data.accounts[0];
         if (currentAccount) this.applyAccount(currentAccount);
       },
       error: error => this.error.set(this.readError(error)),
     });
-  }
-
-  setViewMode(mode: 'accounts' | 'roles'): void {
-    if (mode === this.viewMode() || this.saving()) return;
-    const hasChanges = this.viewMode() === 'accounts' ? this.accountDirty() : this.dirty();
-    if (hasChanges && !confirm('Bạn có thay đổi chưa lưu. Chuyển chế độ và bỏ các thay đổi này?')) return;
-    this.viewMode.set(mode);
-    this.error.set('');
-    this.notice.set('');
   }
 
   selectAccount(account: AccountPermission): void {
@@ -183,79 +165,8 @@ export class PermissionManagementComponent {
     });
   }
 
-  selectRole(role: RolePermission): void {
-    if (this.saving() || role.id === this.selectedRoleId()) return;
-    if (this.dirty() && !confirm('Bạn có thay đổi chưa lưu. Chuyển nhóm và bỏ các thay đổi này?')) return;
-    this.applyRole(role);
-    this.error.set('');
-    this.notice.set('');
-  }
-
-  togglePermission(permissionId: number): void {
-    if (this.saving() || this.selectedRole()?.isSystemAdmin) return;
-    const next = new Set(this.selectedPermissionIds());
-    next.has(permissionId) ? next.delete(permissionId) : next.add(permissionId);
-    this.selectedPermissionIds.set(next);
-    this.dirty.set(true);
-    this.notice.set('');
-  }
-
-  selectAll(): void {
-    if (this.saving() || this.selectedRole()?.isSystemAdmin) return;
-    this.selectedPermissionIds.set(new Set((this.data()?.permissions ?? []).map(x => x.id)));
-    this.dirty.set(true);
-    this.notice.set('');
-  }
-
-  clearAll(): void {
-    if (this.saving() || this.selectedRole()?.isSystemAdmin) return;
-    this.selectedPermissionIds.set(new Set<number>());
-    this.dirty.set(true);
-    this.notice.set('');
-  }
-
-  save(): void {
-    const role = this.selectedRole();
-    if (!role || role.isSystemAdmin || !this.dirty()) return;
-
-    this.saving.set(true);
-    this.error.set('');
-    const permissionIds = [...this.selectedPermissionIds()].sort((a, b) => a - b);
-    this.api.updateRole(role.id, permissionIds).pipe(finalize(() => this.saving.set(false))).subscribe({
-      next: updatedRole => {
-        const current = this.data();
-        if (current) {
-          this.data.set({
-            ...current,
-            roles: current.roles.map(item => item.id === updatedRole.id ? updatedRole : item),
-            accounts: current.accounts.map(account =>
-              !account.usesCustomPermissions && account.roleId === updatedRole.id
-                ? { ...account, permissionIds: updatedRole.permissionIds }
-                : account,
-            ),
-          });
-        }
-        this.applyRole(updatedRole);
-        this.notice.set(`Đã cập nhật quyền cho nhóm ${updatedRole.name}.`);
-      },
-      error: error => this.error.set(this.readError(error)),
-    });
-  }
-
-  isGranted(permissionId: number): boolean {
-    return this.selectedPermissionIds().has(permissionId);
-  }
-
   isAccountPermissionGranted(permissionId: number): boolean {
     return this.selectedAccountPermissionIds().has(permissionId);
-  }
-
-  grantedCount(role: RolePermission): number {
-    return role.isSystemAdmin ? (this.data()?.permissions.length ?? 0) : role.permissionIds.length;
-  }
-
-  groupGrantedCount(group: PermissionGroup): number {
-    return group.permissions.filter(permission => this.isGranted(permission.id)).length;
   }
 
   accountGroupGrantedCount(group: PermissionGroup): number {
@@ -265,12 +176,6 @@ export class PermissionManagementComponent {
   accountInitials(account: AccountPermission): string {
     const parts = account.fullName.trim().split(/\s+/).filter(Boolean);
     return (parts.length > 1 ? `${parts[0][0]}${parts.at(-1)?.[0]}` : account.username.slice(0, 2)).toUpperCase();
-  }
-
-  private applyRole(role: RolePermission): void {
-    this.selectedRoleId.set(role.id);
-    this.selectedPermissionIds.set(new Set(role.permissionIds));
-    this.dirty.set(false);
   }
 
   private applyAccount(account: AccountPermission): void {

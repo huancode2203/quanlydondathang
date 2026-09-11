@@ -67,9 +67,13 @@ public sealed class OrdersController(IOrderRepository repository) : ControllerBa
     public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
     {
         if (!HasPermission("ORDER_DELETE")) return PermissionDenied();
-        return await repository.DeleteAsync(id, cancellationToken)
-            ? NoContent()
-            : NotFound(new { message = "Không tìm thấy đơn hàng." });
+        try
+        {
+            return await repository.DeleteAsync(id, cancellationToken)
+                ? NoContent()
+                : NotFound(new { message = "Không tìm thấy đơn hàng." });
+        }
+        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
     }
 
     private bool HasPermission(string permissionCode) => User.HasClaim("permission", permissionCode);

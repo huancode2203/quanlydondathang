@@ -17,11 +17,14 @@
 - Kiểm tra miền ngày và chặn tổng thanh toán âm.
 - Tính thành tiền từng dòng và tổng thanh toán.
 - Kiểm tra quyền từ `tbl_TaiKhoan`, `tbl_NhomQuyen`, `tbl_CapQuyen`, `tbl_Quyen`.
-- Quản lý quyền theo nhóm tài khoản; nhóm Admin được bảo vệ và luôn có toàn bộ quyền.
-- Phân quyền riêng cho từng tài khoản, chọn nhóm để nhận nhanh quyền mặc định rồi tùy chỉnh từng quyền.
+- Phân quyền theo từng tài khoản: chọn nhóm quyền ngay trên tài khoản để nhận nhanh quyền mặc định rồi tùy chỉnh từng quyền nhỏ.
+- Nhóm Admin được bảo vệ và luôn có toàn bộ quyền.
 - Tự ẩn menu phân hệ khi tài khoản không có quyền xem và chặn truy cập trực tiếp bằng route guard.
 - Thanh công cụ đầu trang dùng shared component; toàn bộ CSS được quản lý tập trung trong `shared/styles`, màn hình nghiệp vụ không khai báo CSS riêng.
 - Khu vực tài khoản/phân quyền co giãn theo màn hình và không tạo thanh cuộn ngang.
+- Đơn đang xử lý giữ tồn khả dụng; đơn hủy giải phóng số lượng giữ; đơn đã giao trừ tồn thực tế đúng một lần.
+- Chỉ cho chuyển trạng thái theo đúng vòng đời và khóa chỉnh sửa/xóa đối với đơn đã giao hoặc đã hủy.
+- Button trên mọi màn hình dùng chung các biến thể `primary`, `secondary`, `ghost`, `danger` từ stylesheet nền tảng.
 - Giao diện responsive bằng Angular.
 
 ## Kiến trúc
@@ -102,7 +105,7 @@ Angular gửi JWT Bearer tự động. Người tạo đơn được lấy từ 
 
 ## Database
 
-Script gốc nằm tại `Database/QuanLyDonDatHangDB.sql`. File `Database/002_AddProductStock.sql` nâng cấp database hiện có với cột `SoLuongTon`; `Database/003_EnsureAdminFullPermissions.sql` bảo đảm nhóm Admin có mọi quyền; `Database/004_AddAccountPermissions.sql` bổ sung quyền riêng theo tài khoản. Các script nâng cấp đều có thể chạy lại an toàn.
+Script gốc nằm tại `Database/QuanLyDonDatHangDB.sql`. File `Database/002_AddProductStock.sql` nâng cấp database hiện có với cột `SoLuongTon`; `Database/003_EnsureAdminFullPermissions.sql` bảo đảm nhóm Admin có mọi quyền; `Database/004_AddAccountPermissions.sql` bổ sung quyền riêng theo tài khoản; `Database/005_AddOrderStockWorkflow.sql` đánh dấu đơn đã trừ kho để chống trừ lặp. Các script nâng cấp đều có thể chạy lại an toàn.
 
 Phân tích chi tiết công dụng từng folder/file nằm trong `docs/KIEN_TRUC_VA_CONG_DUNG_FILE.md`.
 

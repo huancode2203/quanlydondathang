@@ -36,7 +36,7 @@ app-no-access {
   .no-access-card p { margin: 0 0 7px; color: #087f98; font-size: .75rem; font-weight: 800; letter-spacing: .1em; }
   .no-access-card h2 { margin: 0; color: #173b57; font-size: 1.3rem; }
   .no-access-card > span:not(.shield) { display: block; margin-top: 12px; color: #6f8798; font-size: .875rem; line-height: 1.7; }
-  .no-access-card button { height: 42px; margin-top: 24px; padding: 0 20px; border: 0; border-radius: 9px; background: #087f98; color: #fff; font-weight: 800; }
+  .no-access-card button { margin-top: 24px; }
 }
 
 @media (max-width: 860px) {

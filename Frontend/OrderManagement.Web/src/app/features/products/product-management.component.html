@@ -2,7 +2,7 @@
   <app-page-toolbar title="Hàng hóa" description="Đối chiếu đơn đang xử lý với số lượng tồn thực tế">
     <input class="search" placeholder="Tìm mã hoặc tên hàng" [value]="keyword"
       (input)="keyword=$any($event.target).value" (keyup.enter)="load()" />
-    <button class="primary" type="button" (click)="openCreate()"
+    <button class="ui-button ui-button--primary" type="button" (click)="openCreate()"
       [disabled]="!auth.hasPermission('PRODUCT_MANAGE')">+ Thêm hàng hóa</button>
   </app-page-toolbar>
   @if(error()){<div class="error">{{error()}}</div>}
@@ -62,8 +62,8 @@
             formControlName="stockQuantity" /></label><label class="wide"><span>Mô tả</span><textarea rows="3"
             formControlName="description"></textarea></label>
       </div>
-      <div class="dialog-actions"><button class="ghost" type="button"
-          (click)="dialogOpen.set(false)">Hủy</button><button class="primary" type="submit"
+      <div class="dialog-actions"><button class="ui-button ui-button--ghost" type="button"
+          (click)="dialogOpen.set(false)">Hủy</button><button class="ui-button ui-button--primary" type="submit"
           [disabled]="saving()">{{saving()?'Đang lưu...':'Lưu hàng hóa'}}</button></div>
     </form>
   </section>

@@ -149,7 +149,7 @@ Interface không chứa SQL hoặc phần thân hàm.
 | `orders/` | Nghiệp vụ chính: lọc, CRUD đơn, tạo nhanh khách hàng, tồn kho, validation. |
 | `customers/` | Danh sách và CRUD khách hàng đơn giản. |
 | `products/` | Danh sách và CRUD hàng hóa/tồn kho đơn giản. |
-| `permissions/` | Chọn nhóm tài khoản và cấp/bỏ quyền; khóa toàn quyền của Admin. |
+| `permissions/` | Chọn tài khoản, gán nhóm quyền ngay trên tài khoản rồi tinh chỉnh quyền nhỏ; khóa toàn quyền của Admin. |
 | `no-access/` | Thông báo khi tài khoản chưa được cấp quyền xem phân hệ nào. |
 | `shared/ui/page-toolbar.component.ts` | Thanh tiêu đề, mô tả, tìm kiếm và vùng nút thao tác dùng lại ở các màn hình. |
 | `shared/styles/foundation.scss` | Token màu, font, nền và quy tắc nền tảng của toàn ứng dụng. |
@@ -166,6 +166,7 @@ Mỗi feature chỉ giữ `.ts` xử lý logic và `.html` lắp các shared com
 | `002_AddProductStock.sql` | Bổ sung `SoLuongTon` cho database đã tồn tại và cập nhật tồn mẫu. |
 | `003_EnsureAdminFullPermissions.sql` | Bổ sung mọi quyền còn thiếu cho Admin, chạy lại an toàn. |
 | `004_AddAccountPermissions.sql` | Thêm cờ quyền riêng và bảng cấp quyền trực tiếp cho tài khoản. |
+| `005_AddOrderStockWorkflow.sql` | Thêm cờ `DaTruKho` để một đơn đã giao chỉ trừ tồn thực tế đúng một lần. |
 
 Trigger `trg_CapNhatTongTienDonHang` tính lại `TongTienHang`. `ThanhTien` và `TongThanhToan` là computed column nên API không ghi trực tiếp.
 
@@ -176,6 +177,10 @@ Trigger `trg_CapNhatTongTienDonHang` tính lại `TongTienHang`. `ThanhTien` và
 - Ngày/giờ giao dự kiến bắt buộc, sau hiện tại và sau ngày đặt.
 - Một hàng hóa chỉ xuất hiện một lần trong đơn.
 - Số lượng đặt được lớn hơn tồn kho nhưng giao diện cảnh báo.
+- Đơn từ Chờ xác nhận đến Đang giao giữ số lượng trong tồn khả dụng nhưng chưa đổi tồn thực tế.
+- Đơn hủy giải phóng số lượng đang giữ; đơn Đã giao kiểm tra đủ hàng rồi trừ tồn thực tế trong cùng transaction.
+- Vòng đời hợp lệ: Chờ xác nhận → Đã xác nhận → Đang chuẩn bị → Chờ giao hàng → Đang giao → Đã giao; có thể hủy trước khi hoàn tất.
+- Đơn Đã giao và Đã hủy bị khóa chỉnh sửa/xóa để không làm sai lịch sử kho.
 - Trang Hàng hóa tính `tồn sau đơn = tồn thực tế - số lượng trong các đơn chưa giao/chưa hủy`; kết quả âm và sản phẩm thiếu được tô đỏ.
 - Tổng thanh toán âm bị chặn ở Angular và Repository.
 - Lọc nâng cao theo người tạo, người giao, khoảng tổng tiền; sắp xếp ngày giao/tổng tiền.

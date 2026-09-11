@@ -168,6 +168,7 @@ CREATE TABLE tbl_DonDatHang (
     TongThanhToan AS
         CONVERT(DECIMAL(18,2), TongTienHang - TienGiamGia + TienThue + PhiGiaoHang) PERSISTED,
     TrangThai           VARCHAR(30) NOT NULL DEFAULT 'CHO_XAC_NHAN',
+    DaTruKho            BIT NOT NULL DEFAULT 0,
     GhiChu              NVARCHAR(1000) NULL,
     NgayTao             DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
     NgayCapNhat         DATETIME2 NULL,

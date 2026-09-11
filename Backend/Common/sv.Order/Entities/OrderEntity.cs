@@ -17,6 +17,7 @@ public sealed class OrderEntity
     public decimal ShippingFee { get; set; }
     public decimal GrandTotal { get; private set; }
     public required string Status { get; set; }
+    public bool StockDeducted { get; set; }
     public string? Note { get; set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; set; }

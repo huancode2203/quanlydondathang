@@ -40,6 +40,7 @@ export class OrderManagementComponent implements OnInit {
   readonly customerFormOpen = signal(false);
   readonly customerSaving = signal(false);
   readonly creatorName = signal('');
+  readonly originalStatus = signal('CHO_XAC_NHAN');
 
   readonly statuses = [
     { value: 'CHO_XAC_NHAN', label: 'Chờ xác nhận' },
@@ -159,7 +160,9 @@ export class OrderManagementComponent implements OnInit {
   }
 
   openCreate(): void {
+    this.orderForm.enable({ emitEvent: false });
     this.editingId.set(null);
+    this.originalStatus.set('CHO_XAC_NHAN');
     this.creatorName.set(this.auth.user()?.fullName ?? '');
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
     this.orderForm.reset({
@@ -232,6 +235,10 @@ export class OrderManagementComponent implements OnInit {
   }
 
   saveOrder(): void {
+    if (this.orderLocked()) {
+      this.showToast('Đơn hàng đã kết thúc nên chỉ có thể xem, không thể chỉnh sửa.');
+      return;
+    }
     if (this.orderForm.invalid || this.items.length === 0) {
       this.orderForm.markAllAsTouched();
       this.showToast('Vui lòng nhập đầy đủ các trường bắt buộc.');
@@ -288,6 +295,28 @@ export class OrderManagementComponent implements OnInit {
 
   statusLabel(status: string): string { return this.statuses.find(x => x.value === status)?.label ?? status; }
   statusClass(status: string): string { return status.toLowerCase().replaceAll('_', '-'); }
+  isTerminalStatus(status: string): boolean { return status === 'DA_GIAO' || status === 'DA_HUY'; }
+  orderLocked(): boolean { return this.editingId() !== null && this.isTerminalStatus(this.originalStatus()); }
+  formStatuses(): typeof this.statuses {
+    if (this.editingId() === null) return this.statuses.filter(x => x.value === 'CHO_XAC_NHAN');
+    const transitions: Record<string, string[]> = {
+      CHO_XAC_NHAN: ['DA_XAC_NHAN', 'DA_HUY'],
+      DA_XAC_NHAN: ['DANG_CHUAN_BI', 'DA_HUY'],
+      DANG_CHUAN_BI: ['CHO_GIAO_HANG', 'DA_HUY'],
+      CHO_GIAO_HANG: ['DANG_GIAO', 'DA_HUY'],
+      DANG_GIAO: ['DA_GIAO', 'DA_HUY'],
+      DA_GIAO: [],
+      DA_HUY: [],
+    };
+    const current = this.originalStatus();
+    const allowed = new Set([current, ...(transitions[current] ?? [])]);
+    return this.statuses.filter(x => allowed.has(x.value));
+  }
+  statusStockHint(status: string): string {
+    if (status === 'DA_GIAO') return 'Khi lưu, hệ thống kiểm tra đủ hàng rồi trừ tồn thực tế.';
+    if (status === 'DA_HUY') return 'Đơn hủy sẽ giải phóng toàn bộ số lượng đang giữ.';
+    return 'Đơn ở trạng thái này đang giữ số lượng hàng đã đặt.';
+  }
   minOrderDate(): string { const date = new Date(); date.setFullYear(date.getFullYear() - 10); return this.toLocalInput(date.toISOString()); }
   maxOrderDate(): string { return this.toLocalInput(new Date().toISOString()); }
   minDeliveryDate(): string { return this.toLocalInput(new Date(Date.now() + 60000).toISOString()); }
@@ -315,7 +344,9 @@ export class OrderManagementComponent implements OnInit {
   }
 
   private fillForm(order: OrderDetail): void {
+    this.orderForm.enable({ emitEvent: false });
     this.editingId.set(order.id);
+    this.originalStatus.set(order.status);
     this.creatorName.set(order.creatorName);
     this.orderForm.reset({
       code: order.code,
@@ -333,6 +364,7 @@ export class OrderManagementComponent implements OnInit {
     });
     this.items.clear();
     order.items.forEach(item => this.addItem(item));
+    if (this.isTerminalStatus(order.status)) this.orderForm.disable({ emitEvent: false });
     this.formOpen.set(true);
   }
 

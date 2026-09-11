@@ -2,7 +2,7 @@
   <app-page-toolbar title="Khách hàng" description="Danh mục phục vụ tạo đơn hàng">
     <input class="search" placeholder="Tìm mã, tên, số điện thoại" [value]="keyword"
       (input)="keyword=$any($event.target).value" (keyup.enter)="load()" />
-    <button class="primary" type="button" (click)="openCreate()"
+    <button class="ui-button ui-button--primary" type="button" (click)="openCreate()"
       [disabled]="!auth.hasPermission('CUSTOMER_MANAGE')">+ Thêm khách hàng</button>
   </app-page-toolbar>
   @if(error()){<div class="error">{{error()}}</div>}
@@ -53,8 +53,8 @@
             formControlName="taxCode" /></label><label class="wide"><span>Địa chỉ</span><input
             formControlName="address" /></label><label class="wide"><span>Ghi chú</span><textarea rows="2"
             formControlName="note"></textarea></label></div>
-      <div class="dialog-actions"><button class="ghost" type="button"
-          (click)="dialogOpen.set(false)">Hủy</button><button class="primary" type="submit"
+      <div class="dialog-actions"><button class="ui-button ui-button--ghost" type="button"
+          (click)="dialogOpen.set(false)">Hủy</button><button class="ui-button ui-button--primary" type="submit"
           [disabled]="saving()">{{saving()?'Đang lưu...':'Lưu khách hàng'}}</button></div>
     </form>
   </section>

@@ -1,3 +1,4 @@
+using System.Data;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Sv.Order.Data;
@@ -14,6 +15,18 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
         "CHO_XAC_NHAN", "DA_XAC_NHAN", "DANG_CHUAN_BI", "CHO_GIAO_HANG",
         "DANG_GIAO", "DA_GIAO", "DA_HUY"
     ];
+
+    private static readonly IReadOnlyDictionary<string, string[]> AllowedStatusTransitions =
+        new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["CHO_XAC_NHAN"] = ["DA_XAC_NHAN", "DA_HUY"],
+            ["DA_XAC_NHAN"] = ["DANG_CHUAN_BI", "DA_HUY"],
+            ["DANG_CHUAN_BI"] = ["CHO_GIAO_HANG", "DA_HUY"],
+            ["CHO_GIAO_HANG"] = ["DANG_GIAO", "DA_HUY"],
+            ["DANG_GIAO"] = ["DA_GIAO", "DA_HUY"],
+            ["DA_GIAO"] = [],
+            ["DA_HUY"] = []
+        };
 
     public async Task<PagedResult<OrderListItemDto>> SearchAsync(OrderSearchRequest request, CancellationToken cancellationToken)
     {
@@ -172,6 +185,8 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
     public async Task<OrderDetailDto> CreateAsync(SaveOrderRequest request, int creatorEmployeeId, CancellationToken cancellationToken)
     {
         ValidateRequest(request);
+        if (request.Status != "CHO_XAC_NHAN")
+            throw new ArgumentException("Đơn hàng mới phải bắt đầu ở trạng thái Chờ xác nhận.");
         if (await dbContext.Orders.AnyAsync(x => x.Code == request.Code.Trim(), cancellationToken))
             throw new InvalidOperationException($"Mã đơn hàng {request.Code} đã tồn tại.");
 
@@ -186,18 +201,29 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
     public async Task<OrderDetailDto?> UpdateAsync(long id, SaveOrderRequest request, CancellationToken cancellationToken)
     {
         ValidateRequest(request);
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var entity = await dbContext.Orders.Include(x => x.Items).SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (entity is null) return null;
+        if (IsTerminalStatus(entity.Status))
+            throw new InvalidOperationException("Đơn hàng đã giao hoặc đã hủy là đơn kết thúc, không thể chỉnh sửa.");
+        ValidateStatusTransition(entity.Status, request.Status);
+        if (RequiresDeliveryEmployee(request.Status) && !request.DeliveryEmployeeId.HasValue)
+            throw new ArgumentException("Phải chọn nhân viên giao hàng trước khi chuyển sang trạng thái giao hàng.");
         if (await dbContext.Orders.AnyAsync(x => x.Code == request.Code.Trim() && x.Id != id, cancellationToken))
             throw new InvalidOperationException($"Mã đơn hàng {request.Code} đã tồn tại.");
 
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        if (request.Status == "DA_GIAO")
+        {
+            await DeductStockAsync(request.Items, cancellationToken);
+            entity.StockDeducted = true;
+        }
+
         entity.Code = request.Code.Trim();
         entity.CustomerId = request.CustomerId;
         entity.DeliveryEmployeeId = request.DeliveryEmployeeId;
         entity.OrderedAt = request.OrderedAt;
         entity.ExpectedDeliveryAt = request.ExpectedDeliveryAt;
-        entity.DeliveredAt = request.DeliveredAt;
+        entity.DeliveredAt = request.Status == "DA_GIAO" ? request.DeliveredAt ?? DateTime.Now : null;
         entity.DeliveryAddress = request.DeliveryAddress.Trim();
         entity.DiscountAmount = request.DiscountAmount;
         entity.TaxAmount = request.TaxAmount;
@@ -216,6 +242,8 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
     {
         var entity = await dbContext.Orders.FindAsync([id], cancellationToken);
         if (entity is null) return false;
+        if (IsTerminalStatus(entity.Status))
+            throw new InvalidOperationException("Không thể xóa đơn hàng đã giao hoặc đã hủy để bảo toàn lịch sử tồn kho.");
         dbContext.Orders.Remove(entity);
         await dbContext.SaveChangesAsync(cancellationToken);
         return true;
@@ -256,4 +284,51 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
         var grandTotal = merchandiseTotal - request.DiscountAmount + request.TaxAmount + request.ShippingFee;
         if (grandTotal < 0) throw new ArgumentException("Tổng thanh toán không được âm. Vui lòng kiểm tra tiền giảm giá.");
     }
+
+    private async Task DeductStockAsync(IReadOnlyCollection<SaveOrderItemRequest> items, CancellationToken cancellationToken)
+    {
+        var productIds = items.Select(x => x.ProductId).Distinct().ToArray();
+        var products = await dbContext.Products
+            .Where(x => productIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        foreach (var item in items)
+        {
+            if (!products.TryGetValue(item.ProductId, out var product))
+                throw new ArgumentException($"Hàng hóa ID {item.ProductId} không tồn tại.");
+            if (product.StockQuantity < item.Quantity)
+                throw new InvalidOperationException(
+                    $"Không thể hoàn tất giao hàng: {product.Name} chỉ còn {product.StockQuantity:N2}, cần {item.Quantity:N2}.");
+        }
+
+        foreach (var item in items)
+        {
+            products[item.ProductId].StockQuantity -= item.Quantity;
+            products[item.ProductId].UpdatedAt = DateTime.Now;
+        }
+    }
+
+    private static void ValidateStatusTransition(string currentStatus, string nextStatus)
+    {
+        if (currentStatus == nextStatus) return;
+        if (!AllowedStatusTransitions.TryGetValue(currentStatus, out var allowed) || !allowed.Contains(nextStatus))
+            throw new ArgumentException($"Không thể chuyển trạng thái từ {StatusLabel(currentStatus)} sang {StatusLabel(nextStatus)}.");
+    }
+
+    private static bool RequiresDeliveryEmployee(string status) =>
+        status is "CHO_GIAO_HANG" or "DANG_GIAO" or "DA_GIAO";
+
+    private static bool IsTerminalStatus(string status) => status is "DA_GIAO" or "DA_HUY";
+
+    private static string StatusLabel(string status) => status switch
+    {
+        "CHO_XAC_NHAN" => "Chờ xác nhận",
+        "DA_XAC_NHAN" => "Đã xác nhận",
+        "DANG_CHUAN_BI" => "Đang chuẩn bị",
+        "CHO_GIAO_HANG" => "Chờ giao hàng",
+        "DANG_GIAO" => "Đang giao",
+        "DA_GIAO" => "Đã giao",
+        "DA_HUY" => "Đã hủy",
+        _ => status
+    };
 }

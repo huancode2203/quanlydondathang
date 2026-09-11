@@ -11,7 +11,7 @@ import { AuthService } from '../../core/services/auth.service';
       <p>QUYỀN TRUY CẬP</p>
       <h2>Chưa có phân hệ được cấp quyền</h2>
       <span>Tài khoản <strong>{{ auth.user()?.username }}</strong> chưa có quyền xem phân hệ nào. Vui lòng liên hệ quản trị viên để được cấp quyền.</span>
-      <button type="button" (click)="logout()">Đăng xuất</button>
+      <button class="ui-button ui-button--primary" type="button" (click)="logout()">Đăng xuất</button>
     </section>
   `,
 })

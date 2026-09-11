@@ -1,30 +1,13 @@
 app-permission-management { display: block;
 
-.permission-page { min-width: 0; width: 100%; max-width: 100%; display: grid; gap: 16px; overflow-x: hidden; }
-.page-heading { display: flex; align-items: center; gap: 16px; padding: 22px 24px; background: linear-gradient(120deg,#fff 0%,#f6fbfc 100%); border: 1px solid #dce6ed; border-radius: 16px; box-shadow: 0 10px 32px rgba(16,42,67,.055); }
-.heading-icon { width: 48px; height: 48px; flex: 0 0 48px; display: grid; place-items: center; border-radius: 14px; background: #e4f7fa; color: #087f98; }
-.heading-icon svg,.admin-summary svg { width: 25px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.page-heading > div:nth-child(2) { min-width: 0; }
-.page-heading p,.panel-title p,.permission-head p { margin: 0 0 5px; color: #087f98; font-size: .75rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
-.page-heading h2 { margin: 0; color: #173b57; font-size: 1.25rem; }
-.page-heading > div > span { display: block; margin-top: 6px; color: #71889a; font-size: .875rem; line-height: 1.5; }
-.admin-summary { margin-left: auto; min-width: 270px; display: flex; align-items: center; gap: 11px; padding: 11px 14px; border: 1px solid #bde3e9; border-radius: 11px; color: #087f98; background: #ecf9fb; }
-.admin-summary span,.admin-summary strong,.admin-summary small { display: block; }
-.admin-summary strong { color: #15566a; font-size: .875rem; }
-.admin-summary small { margin-top: 3px; color: #688797; font-size: .75rem; }
+.permission-page { min-width: 0; width: 100%; max-width: 100%; display: grid; gap: 14px; overflow-x: hidden; }
+.panel-title p,.permission-head p { margin: 0 0 5px; color: #087f98; font-size: .75rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
 
 .message { min-height: 44px; display: flex; align-items: center; gap: 9px; padding: 10px 14px; border-radius: 11px; font-size: .875rem; font-weight: 600; }
 .message svg { width: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .message button { margin-left: auto; border: 0; background: transparent; color: inherit; font-weight: 800; text-decoration: underline; }
 .error-message { background: #fdecee; color: #ad2b38; border: 1px solid #f6cdd1; }
 .success-message { background: #eaf8f1; color: #1b7655; border: 1px solid #c8ead9; }
-
-.mode-tabs { width: fit-content; display: flex; gap: 5px; padding: 5px; border: 1px solid #dce6ed; border-radius: 12px; background: #fff; box-shadow: 0 6px 20px rgba(16,42,67,.04); }
-.mode-tabs button { min-height: 40px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; color: #627b8d; font-size: .875rem; font-weight: 700; }
-.mode-tabs button.active { background: #e7f7fa; color: #087f98; }
-.mode-tabs svg { width: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.mode-tabs span { min-width: 23px; height: 23px; display: grid; place-items: center; padding: 0 5px; border-radius: 12px; background: #edf2f5; color: #60798b; font-size: .75rem; }
-.mode-tabs button.active span { background: #fff; color: #087f98; }
 
 .loading-state { min-height: 360px; display: grid; place-items: center; align-content: center; gap: 12px; background: #fff; border: 1px solid #dce6ed; border-radius: 16px; color: #6f8798; font-size: .875rem; }
 .loading-state p { margin: 0; }
@@ -33,8 +16,8 @@ app-permission-management { display: block;
 .button-spinner { width: 15px; height: 15px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.permission-layout { min-width: 0; width: 100%; max-width: 100%; min-height: 570px; display: grid; grid-template-columns: 280px minmax(0,1fr); background: #fff; border: 1px solid #dce6ed; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 32px rgba(16,42,67,.055); }
-.role-panel { min-width: 0; max-width: 100%; overflow: hidden; background: #f8fafc; border-right: 1px solid #e2e9ee; }
+.permission-layout { min-width: 0; width: 100%; max-width: 100%; min-height: 570px; display: grid; grid-template-columns: 320px minmax(0,1fr); gap: 16px; align-items: start; }
+.role-panel { min-width: 0; max-width: 100%; overflow: hidden; background: #fff; border: 1px solid #dce6ed; border-radius: 16px; box-shadow: 0 10px 32px rgba(16,42,67,.055); }
 .panel-title { min-height: 76px; display: flex; align-items: center; justify-content: space-between; padding: 17px 18px; border-bottom: 1px solid #e2e9ee; }
 .panel-title p { color: #49677c; }
 .panel-title span { color: #8798a5; font-size: .75rem; }
@@ -58,7 +41,7 @@ app-permission-management { display: block;
 .chevron { width: 16px; fill: none; stroke: #a8b6c0; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .role-item.selected .chevron { stroke: #16a7c5; }
 
-.permission-panel { min-width: 0; max-width: 100%; overflow: hidden; display: flex; flex-direction: column; }
+.permission-panel { min-width: 0; max-width: 100%; overflow: hidden; display: flex; flex-direction: column; background: #fff; border: 1px solid #dce6ed; border-radius: 16px; box-shadow: 0 10px 32px rgba(16,42,67,.055); }
 .permission-head { min-height: 96px; display: flex; align-items: center; gap: 16px; padding: 18px 22px; border-bottom: 1px solid #e8eef2; }
 .permission-head h3 { margin: 0; color: #173b57; font-size: 1.08rem; }
 .permission-head > div:first-child > span { display: block; max-width: 620px; margin-top: 5px; color: #8093a1; font-size: .75rem; }
@@ -95,12 +78,8 @@ app-permission-management { display: block;
 .permission-actions p { display: flex; align-items: center; gap: 7px; margin: 0; color: #71889a; font-size: .75rem; }
 .permission-actions p svg { width: 17px; fill: none; stroke: #16a7c5; stroke-width: 1.8; stroke-linecap: round; }
 .permission-actions > div { display: flex; gap: 8px; }
-.permission-actions button { min-height: 39px; padding: 0 13px; border-radius: 9px; font-size: .8rem; font-weight: 800; }
-.permission-actions button:disabled { cursor: not-allowed; opacity: .5; }
-.secondary { border: 1px solid #d5e0e7; background: #fff; color: #5c7689; }
-.primary { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid #087f98; background: #087f98; color: #fff; box-shadow: 0 6px 14px rgba(8,127,152,.16); }
+.permission-actions .ui-button { min-height: 39px; padding: 0 13px; font-size: .8rem; }
 
-.account-layout { grid-template-columns: 320px minmax(0,1fr); }
 .account-search { position: relative; display: block; margin: 12px 12px 0; }
 .account-search svg { position: absolute; z-index: 1; left: 11px; top: 11px; width: 18px; fill: none; stroke: #8195a4; stroke-width: 1.8; stroke-linecap: round; }
 .account-search input { width: 100%; height: 40px; padding: 0 11px 0 37px; border: 1px solid #d4e0e7; border-radius: 9px; background: #fff; color: #294b62; outline: none; font-size: .875rem; }
@@ -124,21 +103,14 @@ app-permission-management { display: block;
 .account-actions > div { flex-wrap: wrap; justify-content: flex-end; }
 
 @media (max-width: 1050px) {
-  .permission-layout { grid-template-columns: 240px minmax(0,1fr); }
-  .account-layout { grid-template-columns: 270px minmax(0,1fr); }
+  .permission-layout { grid-template-columns: 270px minmax(0,1fr); }
   .permission-grid { grid-template-columns: 1fr; }
-  .admin-summary { min-width: 230px; }
   .account-head { align-items: center; flex-wrap: wrap; }
   .role-select { width: min(300px,60%); }
 }
 
 @media (max-width: 760px) {
-  .page-heading { align-items: flex-start; flex-wrap: wrap; padding: 18px; }
-  .admin-summary { width: 100%; min-width: 0; margin-left: 0; }
-  .mode-tabs { width: 100%; }
-  .mode-tabs button { flex: 1; justify-content: center; }
-  .permission-layout { display: block; }
-  .role-panel { border-right: 0; border-bottom: 1px solid #e2e9ee; }
+  .permission-layout { grid-template-columns: 1fr; }
   .role-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .permission-head,.group-list { padding-left: 16px; padding-right: 16px; }
   .admin-lock { margin-left: 16px; margin-right: 16px; }
@@ -147,14 +119,12 @@ app-permission-management { display: block;
   .account-head .permission-total { margin-left: auto; }
   .permission-actions { align-items: stretch; flex-direction: column; padding: 13px 16px; }
   .permission-actions > div { display: grid; grid-template-columns: 1fr 1fr; }
-  .permission-actions .primary { grid-column: 1/-1; }
+  .permission-actions .ui-button--primary { grid-column: 1/-1; }
 }
 
 @media (max-width: 500px) {
-  .heading-icon { display: none; }
   .role-list { grid-template-columns: 1fr; }
   .permission-head { align-items: flex-start; }
   .permission-total { min-width: auto; }
-  .mode-tabs button { padding: 0 8px; font-size: .75rem; }
 }
 }

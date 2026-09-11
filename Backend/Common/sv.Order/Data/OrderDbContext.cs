@@ -36,6 +36,7 @@ public sealed class OrderDbContext(DbContextOptions<OrderDbContext> options) : D
         order.Property(x => x.ShippingFee).HasColumnName("PhiGiaoHang").HasPrecision(18, 2);
         order.Property(x => x.GrandTotal).HasColumnName("TongThanhToan").HasPrecision(18, 2).ValueGeneratedOnAddOrUpdate();
         order.Property(x => x.Status).HasColumnName("TrangThai").HasMaxLength(30).IsUnicode(false);
+        order.Property(x => x.StockDeducted).HasColumnName("DaTruKho");
         order.Property(x => x.Note).HasColumnName("GhiChu").HasMaxLength(1000);
         order.Property(x => x.CreatedAt).HasColumnName("NgayTao").ValueGeneratedOnAdd();
         order.Property(x => x.UpdatedAt).HasColumnName("NgayCapNhat");

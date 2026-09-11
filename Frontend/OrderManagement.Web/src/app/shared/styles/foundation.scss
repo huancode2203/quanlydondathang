@@ -40,3 +40,32 @@ select,
 textarea { font: inherit; }
 
 button { cursor: pointer; }
+
+.ui-button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ui-text);
+  font-size: .84rem;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: transform .15s, box-shadow .15s, background .15s, border-color .15s;
+}
+
+.ui-button:hover:not(:disabled) { transform: translateY(-1px); }
+.ui-button:disabled { cursor: not-allowed; opacity: .52; }
+.ui-button svg { width: 17px; fill: none; stroke: currentColor; stroke-width: 2; }
+.ui-button--primary { border-color: var(--ui-primary); background: var(--ui-primary); color: #fff; box-shadow: 0 7px 18px rgba(8,127,152,.2); }
+.ui-button--primary:hover:not(:disabled) { background: #066f86; }
+.ui-button--secondary { border-color: #cde5ea; background: var(--ui-primary-soft); color: var(--ui-primary); }
+.ui-button--ghost { border-color: #d9e3e9; background: #f2f5f7; color: #526d82; }
+.ui-button--danger { border-color: #d94452; background: #d94452; color: #fff; }
+.ui-button--icon { width: 42px; min-width: 42px; padding: 0; }
+.ui-button--icon svg { width: 19px; height: 19px; stroke-linecap: round; stroke-linejoin: round; }
+.ui-button--icon.active { border-color: #9fd7e2; background: #e5f7fa; color: var(--ui-primary); }
