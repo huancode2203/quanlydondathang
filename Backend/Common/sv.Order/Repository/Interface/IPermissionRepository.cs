@@ -8,7 +8,7 @@ public interface IPermissionRepository
     Task<RolePermissionDto?> UpdateRoleAsync(int roleId, IReadOnlyCollection<int> permissionIds, CancellationToken cancellationToken);
     Task<AccountPermissionDto?> UpdateAccountAsync(
         int accountId,
-        int roleId,
+        IReadOnlyCollection<int> roleIds,
         bool usesCustomPermissions,
         IReadOnlyCollection<int> permissionIds,
         CancellationToken cancellationToken);

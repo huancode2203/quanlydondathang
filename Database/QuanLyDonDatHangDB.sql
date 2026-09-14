@@ -94,6 +94,19 @@ CREATE TABLE tbl_TaiKhoan (
 );
 GO
 
+-- Một tài khoản có thể thuộc nhiều nhóm quyền. NhomQuyenID trên tbl_TaiKhoan
+-- vẫn được giữ làm nhóm chính để tương thích với dữ liệu/ứng dụng cũ.
+CREATE TABLE tbl_TaiKhoanNhomQuyen (
+    TaiKhoanNhomQuyenID BIGINT IDENTITY(1,1) PRIMARY KEY,
+    TaiKhoanID          INT NOT NULL,
+    NhomQuyenID         INT NOT NULL,
+    NgayGan             DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    FOREIGN KEY (TaiKhoanID) REFERENCES tbl_TaiKhoan(TaiKhoanID) ON DELETE CASCADE,
+    FOREIGN KEY (NhomQuyenID) REFERENCES tbl_NhomQuyen(NhomQuyenID),
+    CONSTRAINT UQ_TaiKhoanNhomQuyen UNIQUE (TaiKhoanID, NhomQuyenID)
+);
+GO
+
 CREATE TABLE tbl_CapQuyenTaiKhoan (
     CapQuyenTaiKhoanID INT IDENTITY(1,1) PRIMARY KEY,
     TaiKhoanID         INT NOT NULL,
@@ -351,6 +364,10 @@ VALUES
     (2, 3, 'manager01', 'DEMO_HASH_123456'),
     (3, 2, 'delivery01', 'DEMO_HASH_123456'),
     (4, 4, 'admin', 'DEMO_HASH_123456');
+GO
+
+INSERT INTO tbl_TaiKhoanNhomQuyen (TaiKhoanID, NhomQuyenID)
+SELECT TaiKhoanID, NhomQuyenID FROM tbl_TaiKhoan;
 GO
 
 -- Khách hàng

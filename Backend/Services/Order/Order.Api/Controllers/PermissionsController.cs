@@ -52,7 +52,7 @@ public sealed class PermissionsController(IPermissionRepository repository) : Co
         {
             var account = await repository.UpdateAccountAsync(
                 accountId,
-                request.RoleId,
+                request.RoleIds,
                 request.UsesCustomPermissions,
                 request.PermissionIds,
                 cancellationToken);

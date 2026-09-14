@@ -18,7 +18,7 @@ public sealed class RolePermissionDto
     public string Code { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public string? Description { get; init; }
-    public bool IsSystemAdmin { get; init; }
+    public bool IsSystemAdmin { get; set; }
     public IReadOnlyList<int> PermissionIds { get; set; } = [];
 }
 
@@ -32,10 +32,9 @@ public sealed class AccountPermissionDto
     public int Id { get; init; }
     public string Username { get; init; } = string.Empty;
     public string FullName { get; init; } = string.Empty;
-    public int RoleId { get; init; }
-    public string RoleCode { get; init; } = string.Empty;
-    public string RoleName { get; init; } = string.Empty;
-    public bool IsSystemAdmin { get; init; }
+    public IReadOnlyList<int> RoleIds { get; set; } = [];
+    public IReadOnlyList<string> RoleNames { get; set; } = [];
+    public bool IsSystemAdmin { get; set; }
     public bool UsesCustomPermissions { get; init; }
     public IReadOnlyList<int> PermissionIds { get; set; } = [];
 }
@@ -47,7 +46,7 @@ public sealed class UpdateRolePermissionsRequest
 
 public sealed class UpdateAccountPermissionsRequest
 {
-    [Range(1, int.MaxValue)] public int RoleId { get; init; }
+    [Required, MinLength(1)] public List<int> RoleIds { get; init; } = [];
     public bool UsesCustomPermissions { get; init; }
     [Required] public List<int> PermissionIds { get; init; } = [];
 }

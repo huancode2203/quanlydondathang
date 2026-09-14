@@ -26,9 +26,8 @@ export interface AccountPermission {
   id: number;
   username: string;
   fullName: string;
-  roleId: number;
-  roleCode: string;
-  roleName: string;
+  roleIds: number[];
+  roleNames: string[];
   isSystemAdmin: boolean;
   usesCustomPermissions: boolean;
   permissionIds: number[];

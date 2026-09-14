@@ -17,7 +17,8 @@
 - Kiểm tra miền ngày và chặn tổng thanh toán âm.
 - Tính thành tiền từng dòng và tổng thanh toán.
 - Kiểm tra quyền từ `tbl_TaiKhoan`, `tbl_NhomQuyen`, `tbl_CapQuyen`, `tbl_Quyen`.
-- Phân quyền theo từng tài khoản: chọn nhóm quyền ngay trên tài khoản để nhận nhanh quyền mặc định rồi tùy chỉnh từng quyền nhỏ.
+- Phân quyền theo từng tài khoản: có thể chọn đồng thời nhiều nhóm, hệ thống cộng quyền của các nhóm rồi cho phép tùy chỉnh quyền riêng.
+- Quyền `VIEW` là quyền nền: chọn quyền thao tác tự bổ sung quyền xem; bỏ quyền xem sẽ bỏ các thao tác phụ thuộc trong cùng phân hệ.
 - Nhóm Admin được bảo vệ và luôn có toàn bộ quyền.
 - Tự ẩn menu phân hệ khi tài khoản không có quyền xem và chặn truy cập trực tiếp bằng route guard.
 - Thanh công cụ đầu trang dùng shared component; toàn bộ CSS được quản lý tập trung trong `shared/styles`, màn hình nghiệp vụ không khai báo CSS riêng.
@@ -105,7 +106,7 @@ Angular gửi JWT Bearer tự động. Người tạo đơn được lấy từ 
 
 ## Database
 
-Script gốc nằm tại `Database/QuanLyDonDatHangDB.sql`. File `Database/002_AddProductStock.sql` nâng cấp database hiện có với cột `SoLuongTon`; `Database/003_EnsureAdminFullPermissions.sql` bảo đảm nhóm Admin có mọi quyền; `Database/004_AddAccountPermissions.sql` bổ sung quyền riêng theo tài khoản; `Database/005_AddOrderStockWorkflow.sql` đánh dấu đơn đã trừ kho để chống trừ lặp. Các script nâng cấp đều có thể chạy lại an toàn.
+Script gốc nằm tại `Database/QuanLyDonDatHangDB.sql`. File `Database/002_AddProductStock.sql` nâng cấp database hiện có với cột `SoLuongTon`; `Database/003_EnsureAdminFullPermissions.sql` bảo đảm nhóm Admin có mọi quyền; `Database/004_AddAccountPermissions.sql` bổ sung quyền riêng theo tài khoản; `Database/005_AddOrderStockWorkflow.sql` đánh dấu đơn đã trừ kho để chống trừ lặp; `Database/006_AddMultipleAccountRoles.sql` cho phép một tài khoản thuộc nhiều nhóm quyền và chuẩn hóa phụ thuộc quyền xem. Các script nâng cấp đều có thể chạy lại an toàn.
 
 Phân tích chi tiết công dụng từng folder/file nằm trong `docs/KIEN_TRUC_VA_CONG_DUNG_FILE.md`.
 

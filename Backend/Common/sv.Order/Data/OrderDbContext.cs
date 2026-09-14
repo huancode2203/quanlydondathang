@@ -13,6 +13,7 @@ public sealed class OrderDbContext(DbContextOptions<OrderDbContext> options) : D
     public DbSet<PermissionEntity> Permissions => Set<PermissionEntity>();
     public DbSet<RolePermissionEntity> RolePermissions => Set<RolePermissionEntity>();
     public DbSet<AccountEntity> Accounts => Set<AccountEntity>();
+    public DbSet<AccountRoleEntity> AccountRoles => Set<AccountRoleEntity>();
     public DbSet<AccountPermissionEntity> AccountPermissions => Set<AccountPermissionEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -131,6 +132,17 @@ public sealed class OrderDbContext(DbContextOptions<OrderDbContext> options) : D
         account.Property(x => x.Status).HasColumnName("TrangThai").HasMaxLength(20).IsUnicode(false);
         account.Property(x => x.UsesCustomPermissions).HasColumnName("SuDungQuyenRieng");
         account.HasOne(x => x.Role).WithMany(x => x.Accounts).HasForeignKey(x => x.RoleId);
+
+        var accountRole = modelBuilder.Entity<AccountRoleEntity>();
+        accountRole.ToTable("tbl_TaiKhoanNhomQuyen");
+        accountRole.HasKey(x => x.Id);
+        accountRole.Property(x => x.Id).HasColumnName("TaiKhoanNhomQuyenID");
+        accountRole.Property(x => x.AccountId).HasColumnName("TaiKhoanID");
+        accountRole.Property(x => x.RoleId).HasColumnName("NhomQuyenID");
+        accountRole.Property(x => x.AssignedAt).HasColumnName("NgayGan").ValueGeneratedOnAdd();
+        accountRole.HasIndex(x => new { x.AccountId, x.RoleId }).IsUnique();
+        accountRole.HasOne<AccountEntity>().WithMany().HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Cascade);
+        accountRole.HasOne<RoleEntity>().WithMany().HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Restrict);
 
         var accountPermission = modelBuilder.Entity<AccountPermissionEntity>();
         accountPermission.ToTable("tbl_CapQuyenTaiKhoan");

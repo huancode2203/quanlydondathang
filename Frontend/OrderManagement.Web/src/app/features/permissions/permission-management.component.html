@@ -1,9 +1,6 @@
 <section class="permission-page">
   @if (error()) {
-    <div class="message error-message" role="alert">
-      <span>{{ error() }}</span>
-      @if (!data()) { <button type="button" (click)="load()">Thử lại</button> }
-    </div>
+    <div class="message error-message" role="alert"><span>{{ error() }}</span>@if (!data()) { <button type="button" (click)="load()">Thử lại</button> }</div>
   }
   @if (notice()) {
     <div class="message success-message" role="status">
@@ -26,7 +23,6 @@
           <input type="search" placeholder="Tìm tên hoặc tài khoản" [value]="accountKeyword()"
             (input)="accountKeyword.set($any($event.target).value)" />
         </label>
-
         <div class="role-list account-list">
           @for (account of filteredAccounts(); track account.id) {
             <button class="role-item account-item" type="button" [disabled]="saving()"
@@ -34,7 +30,8 @@
               <span class="role-avatar" [class.admin]="account.isSystemAdmin">{{ accountInitials(account) }}</span>
               <span class="role-copy">
                 <strong>{{ account.fullName }}</strong>
-                <small>{{ account.username }} · {{ account.roleName }}</small>
+                <small>{{ account.username }}</small>
+                <small class="account-role-names">{{ account.roleNames.join(' · ') }}</small>
                 <span class="role-meta">
                   <b>{{ account.permissionIds.length }}/{{ data()!.permissions.length }} quyền</b>
                   @if (account.isSystemAdmin) { <em>Admin</em> }
@@ -43,61 +40,65 @@
               </span>
               <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
             </button>
-          } @empty {
-            <div class="account-empty">Không tìm thấy tài khoản phù hợp.</div>
-          }
+          } @empty { <div class="account-empty">Không tìm thấy tài khoản phù hợp.</div> }
         </div>
       </aside>
 
       <section class="permission-panel">
         @if (selectedAccount(); as account) {
           <div class="permission-head account-head">
-            <div>
-              <p>Phân quyền tài khoản</p>
-              <h3>{{ account.fullName }}</h3>
-              <span>{{ account.username }}</span>
-            </div>
-            <label class="role-select">
-              <span>Chọn nhóm quyền cho tài khoản</span>
-              <select [value]="selectedAccountRoleId()" [disabled]="saving() || selectedAccountIsLastAdmin()"
-                (change)="changeAccountRole(+$any($event.target).value)">
-                @for (role of roles(); track role.id) { <option [value]="role.id">{{ role.name }}</option> }
-              </select>
-            </label>
-            <div class="permission-total">
-              <strong>{{ selectedAccountPermissionIds().size }}</strong>
-              <span>/ {{ data()!.permissions.length }} quyền</span>
-            </div>
+            <div><p>Phân quyền tài khoản</p><h3>{{ account.fullName }}</h3><span>{{ account.username }}</span></div>
+            <div class="permission-total"><strong>{{ selectedAccountPermissionIds().size }}</strong><span>/ {{ data()!.permissions.length }} quyền</span></div>
           </div>
 
-          @if (selectedAccountRole()?.isSystemAdmin) {
+          <section class="account-role-picker">
+            <div class="role-picker-head">
+              <div><h4>Nhóm quyền áp dụng</h4><p>Có thể chọn nhiều nhóm; quyền hiệu lực là tổng quyền của các nhóm đã chọn.</p></div>
+              <span>{{ selectedAccountRoleIds().size }} nhóm</span>
+            </div>
+            <div class="role-options">
+              @for (role of roles(); track role.id) {
+                <article class="role-option" [class.selected]="isAccountRoleSelected(role.id)">
+                  <label class="role-option-main">
+                    <input type="checkbox" [checked]="isAccountRoleSelected(role.id)" [disabled]="saving()"
+                      (change)="toggleAccountRole(role)" />
+                    <span class="role-option-check"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
+                    <span><strong>{{ role.name }}</strong><small>{{ role.permissionIds.length }}/{{ data()!.permissions.length }} quyền</small></span>
+                  </label>
+                  <button class="configure-role" type="button" [disabled]="saving()" [attr.aria-label]="'Cấu hình nhóm ' + role.name"
+                    title="Cấu hình quyền của nhóm" (click)="openRoleEditor(role)">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V20h-3v-.08a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 14.7a1.7 1.7 0 0 0-1.56-1.03H5v-3h.44A1.7 1.7 0 0 0 7 9.64a1.7 1.7 0 0 0-.34-1.88L6.6 7.7l2.12-2.12.06.06A1.7 1.7 0 0 0 10.66 6a1.7 1.7 0 0 0 1.03-1.56V4h3v.44A1.7 1.7 0 0 0 15.72 6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.12 2.12-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.03H21v3h-.06A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+                  </button>
+                </article>
+              }
+            </div>
+          </section>
+
+          @if (accountIsAdmin()) {
             <div class="admin-lock">
               <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>
-              <div><strong>Tài khoản Admin luôn có toàn quyền</strong><span>Không thể bỏ từng quyền. @if (selectedAccountIsLastAdmin()) { Đây là Admin cuối cùng nên không thể đổi sang nhóm khác. }</span></div>
+              <div><strong>Tài khoản có nhóm Quản trị viên nên luôn có toàn quyền</strong><span>Không thể bỏ từng quyền. @if (selectedAccountIsLastAdmin()) { Đây là Admin cuối cùng nên không thể bỏ nhóm Quản trị viên. }</span></div>
             </div>
           } @else {
             <div class="inheritance-note" [class.custom]="accountUsesCustomPermissions()">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M7 4v6M17 4v6M8 14h8M10 11v6M14 11v6M12 17v3"/></svg>
               <div>
-                <strong>{{ accountUsesCustomPermissions() ? 'Đang dùng quyền riêng' : 'Đang theo quyền của nhóm' }}</strong>
-                <span>{{ accountUsesCustomPermissions() ? 'Các lựa chọn bên dưới chỉ áp dụng cho tài khoản này.' : 'Chọn nhóm ở phía trên để áp dụng nhanh bộ quyền mặc định.' }}</span>
+                <strong>{{ accountUsesCustomPermissions() ? 'Đang dùng quyền riêng' : 'Đang cộng quyền từ các nhóm đã chọn' }}</strong>
+                <span>{{ accountUsesCustomPermissions() ? 'Các lựa chọn bên dưới chỉ áp dụng cho tài khoản này.' : 'Muốn sửa từng quyền, hãy bật tùy chỉnh quyền riêng.' }}</span>
               </div>
             </div>
           }
 
+          <div class="view-rule-note"><strong>Quy tắc quyền Xem:</strong> chọn quyền tạo, sửa, xóa hoặc xử lý sẽ tự chọn quyền Xem; bỏ quyền Xem sẽ bỏ các quyền liên quan trong cùng phân hệ.</div>
+
           <div class="group-list">
             @for (group of groups(); track group.feature) {
               <section class="permission-group">
-                <div class="group-head">
-                  <div><h4>{{ group.label }}</h4><p>{{ group.description }}</p></div>
-                  <span>{{ accountGroupGrantedCount(group) }}/{{ group.permissions.length }}</span>
-                </div>
+                <div class="group-head"><div><h4>{{ group.label }}</h4><p>{{ group.description }}</p></div><span>{{ accountGroupGrantedCount(group) }}/{{ group.permissions.length }}</span></div>
                 <div class="permission-grid">
                   @for (permission of group.permissions; track permission.id) {
-                    <label class="permission-item" [class.granted]="isAccountPermissionGranted(permission.id)"
-                      [class.locked]="selectedAccountRole()?.isSystemAdmin">
-                      <input type="checkbox" [checked]="isAccountPermissionGranted(permission.id)"
-                        [disabled]="selectedAccountRole()?.isSystemAdmin || saving()" (change)="toggleAccountPermission(permission.id)" />
+                    <label class="permission-item" [class.granted]="isAccountPermissionGranted(permission.id)" [class.locked]="accountIsAdmin() || !accountUsesCustomPermissions()">
+                      <input type="checkbox" [checked]="isAccountPermissionGranted(permission.id)" [disabled]="accountIsAdmin() || !accountUsesCustomPermissions() || saving()" (change)="toggleAccountPermission(permission.id)" />
                       <span class="checkmark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
                       <span class="permission-copy"><strong>{{ permission.name }}</strong><small>{{ permission.description || permission.code }}</small></span>
                       <code>{{ permission.action }}</code>
@@ -109,17 +110,17 @@
           </div>
 
           <footer class="permission-actions account-actions">
-            <p><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Chọn nhóm trước, sau đó có thể tinh chỉnh từng quyền nhỏ.</p>
+            <p><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Chọn một hoặc nhiều nhóm, sau đó lưu thay đổi.</p>
             <div>
-              <button class="ui-button ui-button--secondary" type="button"
-                [disabled]="selectedAccountRole()?.isSystemAdmin || saving()" (click)="resetAccountToRole()">Khôi phục quyền nhóm</button>
-              <button class="ui-button ui-button--secondary" type="button"
-                [disabled]="selectedAccountRole()?.isSystemAdmin || saving()" (click)="clearAccountPermissions()">Bỏ tất cả</button>
-              <button class="ui-button ui-button--secondary" type="button"
-                [disabled]="selectedAccountRole()?.isSystemAdmin || saving()" (click)="selectAllAccountPermissions()">Chọn tất cả</button>
+              @if (!accountIsAdmin() && !accountUsesCustomPermissions()) {
+                <button class="ui-button ui-button--secondary" type="button" [disabled]="saving()" (click)="enableCustomPermissions()">Tùy chỉnh quyền riêng</button>
+              } @else if (accountUsesCustomPermissions()) {
+                <button class="ui-button ui-button--secondary" type="button" [disabled]="saving()" (click)="resetAccountToRoles()">Dùng lại quyền nhóm</button>
+                <button class="ui-button ui-button--secondary" type="button" [disabled]="saving()" (click)="clearAccountPermissions()">Bỏ tất cả</button>
+                <button class="ui-button ui-button--secondary" type="button" [disabled]="saving()" (click)="selectAllAccountPermissions()">Chọn tất cả</button>
+              }
               <button class="ui-button ui-button--primary" type="button" [disabled]="!accountDirty() || saving()" (click)="saveAccount()">
-                @if (saving()) { <span class="button-spinner"></span> }
-                {{ saving() ? 'Đang lưu...' : 'Lưu phân quyền' }}
+                @if (saving()) { <span class="button-spinner"></span> }{{ saving() ? 'Đang lưu...' : 'Lưu phân quyền' }}
               </button>
             </div>
           </footer>
@@ -128,3 +129,40 @@
     </div>
   }
 </section>
+
+@if (roleEditorOpen()) {
+  @if (editingRole(); as role) {
+    <div class="permission-modal-backdrop" role="presentation">
+      <section class="role-editor" role="dialog" aria-modal="true" aria-labelledby="role-editor-title">
+        <header class="role-editor-head">
+          <div><p>Cấu hình nhóm quyền</p><h2 id="role-editor-title">{{ role.name }}</h2><span>{{ role.description }}</span></div>
+          <button type="button" aria-label="Đóng" (click)="closeRoleEditor()">×</button>
+        </header>
+        @if (role.isSystemAdmin) {
+          <div class="admin-lock role-editor-lock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg><div><strong>Nhóm Quản trị viên luôn có toàn quyền</strong><span>Các quyền của nhóm hệ thống này không thể bỏ chọn.</span></div></div>
+        }
+        <div class="view-rule-note role-rule-note"><strong>Quyền Xem là quyền nền:</strong> chọn một thao tác khác sẽ tự thêm Xem; bỏ Xem sẽ bỏ toàn bộ thao tác cùng phân hệ.</div>
+        <div class="group-list role-editor-list">
+          @for (group of groups(); track group.feature) {
+            <section class="permission-group">
+              <div class="group-head"><div><h4>{{ group.label }}</h4><p>{{ group.description }}</p></div><span>{{ roleGroupGrantedCount(group) }}/{{ group.permissions.length }}</span></div>
+              <div class="permission-grid">
+                @for (permission of group.permissions; track permission.id) {
+                  <label class="permission-item" [class.granted]="isRolePermissionGranted(permission.id)" [class.locked]="role.isSystemAdmin">
+                    <input type="checkbox" [checked]="isRolePermissionGranted(permission.id)" [disabled]="role.isSystemAdmin || saving()" (change)="toggleRolePermission(permission.id)" />
+                    <span class="checkmark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
+                    <span class="permission-copy"><strong>{{ permission.name }}</strong><small>{{ permission.description || permission.code }}</small></span><code>{{ permission.action }}</code>
+                  </label>
+                }
+              </div>
+            </section>
+          }
+        </div>
+        <footer class="role-editor-actions">
+          <div><button class="ui-button ui-button--secondary" type="button" [disabled]="role.isSystemAdmin || saving()" (click)="clearRolePermissions()">Bỏ tất cả</button><button class="ui-button ui-button--secondary" type="button" [disabled]="role.isSystemAdmin || saving()" (click)="selectAllRolePermissions()">Chọn tất cả</button></div>
+          <div><button class="ui-button ui-button--ghost" type="button" (click)="closeRoleEditor()">Đóng</button><button class="ui-button ui-button--primary" type="button" [disabled]="role.isSystemAdmin || !roleEditorDirty() || saving()" (click)="saveRole()">{{ saving() ? 'Đang lưu...' : 'Lưu quyền nhóm' }}</button></div>
+        </footer>
+      </section>
+    </div>
+  }
+}

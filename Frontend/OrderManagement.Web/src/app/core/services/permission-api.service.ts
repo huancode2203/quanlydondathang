@@ -15,9 +15,9 @@ export class PermissionApiService {
     return this.http.put<RolePermission>(`${this.apiUrl}/roles/${roleId}`, { permissionIds });
   }
 
-  updateAccount(accountId: number, roleId: number, usesCustomPermissions: boolean, permissionIds: number[]) {
+  updateAccount(accountId: number, roleIds: number[], usesCustomPermissions: boolean, permissionIds: number[]) {
     return this.http.put<AccountPermission>(`${this.apiUrl}/accounts/${accountId}`, {
-      roleId,
+      roleIds,
       usesCustomPermissions,
       permissionIds,
     });
