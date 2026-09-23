@@ -14,8 +14,8 @@ const product: SaveProduct = { code: 'HH01', name: 'Hàng hóa', unit: 'Cái', p
 const order: SaveOrderRequest = {
   code: 'DH01', customerId: 1, orderedAt: '2026-09-22T09:00:00',
   expectedDeliveryAt: '2026-09-23T09:00:00', deliveryAddress: 'TP.HCM',
-  discountAmount: 0, taxAmount: 0, shippingFee: 0, status: 'CHO_XAC_NHAN',
-  items: [{ productId: 1, quantity: 1, unitPrice: 20, discountPercent: 0 }],
+  discountAmount: 0, taxPercent: 0, shippingFee: 0, status: 'CHO_XAC_NHAN',
+  items: [{ productId: 1, quantity: 1, unitPrice: 20, discountPercent: 0, discountAmount: 0, taxPercent: 0 }],
 };
 
 describe('Business APIs use POST-only JSON contracts', () => {

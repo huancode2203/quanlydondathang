@@ -9,17 +9,21 @@ export interface OrderListItem {
 }
 export interface OrderItem {
   id: number; productId: number; productCode: string; productName: string; unit: string;
-  quantity: number; unitPrice: number; discountPercent: number; lineTotal: number; stockQuantity: number; note?: string;
+  quantity: number; unitPrice: number; discountPercent: number; discountAmount: number; taxPercent: number;
+  lineTotal: number; taxAmount: number; stockQuantity: number; note?: string;
 }
 export interface OrderDetail extends OrderListItem {
   creatorEmployeeId: number; deliveryEmployeeId?: number; deliveredAt?: string; merchandiseTotal: number;
-  discountAmount: number; taxAmount: number; shippingFee: number; note?: string; items: OrderItem[];
+  discountAmount: number; taxPercent: number; taxAmount: number; shippingFee: number; note?: string; items: OrderItem[];
 }
-export interface SaveOrderItem { productId: number; quantity: number; unitPrice: number; discountPercent: number; note?: string; }
+export interface SaveOrderItem {
+  productId: number; quantity: number; unitPrice: number; discountPercent: number;
+  discountAmount: number; taxPercent: number; note?: string;
+}
 export interface SaveOrderRequest {
   code: string; customerId: number; deliveryEmployeeId?: number;
   orderedAt: string; expectedDeliveryAt?: string; deliveredAt?: string; deliveryAddress: string;
-  discountAmount: number; taxAmount: number; shippingFee: number; status: string; note?: string; items: SaveOrderItem[];
+  discountAmount: number; taxPercent: number; shippingFee: number; status: string; note?: string; items: SaveOrderItem[];
 }
 export interface PagedResult<T> { items: T[]; total: number; page: number; pageSize: number; totalPages: number; }
 export interface OrderSearchParams extends PagedFilter {

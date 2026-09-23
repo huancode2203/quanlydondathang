@@ -32,7 +32,7 @@ SQL Server local được cấu hình trong [appsettings.json](Backend/Services/
 
 Để phát triển bằng ba tiến trình riêng, chọn task **Run full project** trong VS Code. Để triển khai dùng IIS, chạy [scripts/Publish-Iis.ps1](scripts/Publish-Iis.ps1), sau đó chạy [scripts/Install-Iis.ps1](scripts/Install-Iis.ps1) trong Windows PowerShell với quyền Administrator. IIS được cấu hình để chạy giao diện và API qua một địa chỉ web; hướng dẫn và giới hạn máy hiện tại ở [docs/IIS_VA_TRIEN_KHAI.md](docs/IIS_VA_TRIEN_KHAI.md).
 
-Tạo database mới bằng `sqlcmd -S 'HUANPHAM\MSSQLSERVER01' -E -C -b -i Database/Initialize.sql`. Với database đã có dữ liệu, sao lưu trước, chạy `Database/007_NormalizeDomains.sql` với `ApplyChanges=0` để xem trước; chỉ chạy `ApplyChanges=1` sau khi preflight báo PASS. Migration 007 không tính lại tồn kho lịch sử.
+Tạo database mới bằng `sqlcmd -S 'HUANPHAM\MSSQLSERVER01' -E -C -b -i Database/Initialize.sql`. Với database đã có dữ liệu, sao lưu trước; áp dụng lần lượt migration 007 (preflight trước, sau đó `ApplyChanges=1`) và migration 008. Migration 008 thêm chiết khấu tiền, thuế phần trăm từng hàng và thuế phần trăm hóa đơn; dữ liệu cũ nhận tỷ lệ 0%, giữ nguyên tổng tiền hiện có.
 
 Để chạy kiểm thử contract HTTP độc lập: `dotnet run --project Backend/Tests/Order.Api.ContractTests -c Release`. Tùy chọn `--database` dựng database thử nghiệm mới, áp dụng schema hiện hành, chạy CRUD/tồn kho qua HTTP rồi xóa database thử nghiệm.
 

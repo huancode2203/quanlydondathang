@@ -67,7 +67,7 @@ export class OrderManagementComponent implements OnInit {
     deliveryAddress: ['', [Validators.required, Validators.maxLength(500)]],
     status: ['CHO_XAC_NHAN', Validators.required],
     discountAmount: [0, [Validators.required, Validators.min(0)]],
-    taxAmount: [0, [Validators.required, Validators.min(0)]],
+    taxPercent: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
     shippingFee: [0, [Validators.required, Validators.min(0)]],
     note: [''],
     items: this.fb.array([]),
@@ -173,7 +173,7 @@ export class OrderManagementComponent implements OnInit {
       expectedDeliveryAt: this.toLocalInput(tomorrow.toISOString()),
       status: 'CHO_XAC_NHAN',
       discountAmount: 0,
-      taxAmount: 0,
+      taxPercent: 0,
       shippingFee: 30000,
     });
     this.items.clear();
@@ -193,12 +193,14 @@ export class OrderManagementComponent implements OnInit {
     if (!this.saving()) this.formOpen.set(false);
   }
 
-  addItem(item?: Partial<{ productId: number; quantity: number; unitPrice: number; discountPercent: number; note: string }>): void {
+  addItem(item?: Partial<{ productId: number; quantity: number; unitPrice: number; discountPercent: number; discountAmount: number; taxPercent: number; note: string }>): void {
     this.items.push(this.fb.group({
       productId: [item?.productId ?? null, Validators.required],
       quantity: [item?.quantity ?? 1, [Validators.required, Validators.min(0.01)]],
       unitPrice: [item?.unitPrice ?? 0, [Validators.required, Validators.min(0)]],
       discountPercent: [item?.discountPercent ?? 0, [Validators.required, Validators.min(0), Validators.max(100)]],
+      discountAmount: [item?.discountAmount ?? 0, [Validators.required, Validators.min(0)]],
+      taxPercent: [item?.taxPercent ?? 0, [Validators.required, Validators.min(0), Validators.max(100)]],
       note: [item?.note ?? ''],
     }));
   }
@@ -220,16 +222,34 @@ export class OrderManagementComponent implements OnInit {
 
   lineTotal(group: AbstractControl): number {
     const value = group.getRawValue();
-    return Number(value.quantity || 0) * Number(value.unitPrice || 0) * (1 - Number(value.discountPercent || 0) / 100);
+    const afterPercent = Number(value.quantity || 0) * Number(value.unitPrice || 0) *
+      (1 - Number(value.discountPercent || 0) / 100);
+    return Math.max(0, Math.round((afterPercent - Number(value.discountAmount || 0)) * 100) / 100);
+  }
+
+  lineTax(group: AbstractControl): number {
+    return Math.round(this.lineTotal(group) * Number(group.get('taxPercent')?.value || 0)) / 100;
   }
 
   merchandiseTotal(): number {
     return this.items.controls.reduce((sum, control) => sum + this.lineTotal(control), 0);
   }
 
+  itemTaxTotal(): number {
+    return this.items.controls.reduce((sum, control) => sum + this.lineTax(control), 0);
+  }
+
+  invoiceTaxAmount(): number {
+    const value = this.orderForm.getRawValue();
+    const taxable = Math.max(0, this.merchandiseTotal() - Number(value.discountAmount || 0));
+    return Math.round(taxable * Number(value.taxPercent || 0)) / 100;
+  }
+
+  taxTotal(): number { return this.itemTaxTotal() + this.invoiceTaxAmount(); }
+
   grandTotal(): number {
     const value = this.orderForm.getRawValue();
-    return this.merchandiseTotal() - Number(value.discountAmount || 0) + Number(value.taxAmount || 0) + Number(value.shippingFee || 0);
+    return this.merchandiseTotal() - Number(value.discountAmount || 0) + this.taxTotal() + Number(value.shippingFee || 0);
   }
 
   isProductUsed(productId: number, currentIndex: number): boolean {
@@ -250,6 +270,12 @@ export class OrderManagementComponent implements OnInit {
     if (new Set(productIds).size !== productIds.length) {
       this.showToast('Một hàng hóa không được chọn nhiều lần trong cùng đơn hàng.');
       return;
+    }
+    if (this.items.controls.some(item => Number(item.get('discountAmount')?.value || 0) > this.lineTotalBeforeFixedDiscount(item))) {
+      this.showToast('Tiền giảm giá của từng mặt hàng không được lớn hơn thành tiền sau khi giảm phần trăm.'); return;
+    }
+    if (Number(this.orderForm.get('discountAmount')?.value || 0) > this.merchandiseTotal()) {
+      this.showToast('Giảm giá toàn đơn không được lớn hơn tổng tiền hàng.'); return;
     }
     const value = this.orderForm.getRawValue();
     const now = new Date();
@@ -383,7 +409,7 @@ export class OrderManagementComponent implements OnInit {
       deliveryAddress: order.deliveryAddress,
       status: order.status,
       discountAmount: order.discountAmount,
-      taxAmount: order.taxAmount,
+      taxPercent: order.taxPercent,
       shippingFee: order.shippingFee,
       note: order.note ?? '',
     });
@@ -409,7 +435,7 @@ export class OrderManagementComponent implements OnInit {
       deliveryAddress: value.deliveryAddress.trim(),
       status: value.status,
       discountAmount: Number(value.discountAmount || 0),
-      taxAmount: Number(value.taxAmount || 0),
+      taxPercent: Number(value.taxPercent || 0),
       shippingFee: Number(value.shippingFee || 0),
       note: value.note?.trim() || undefined,
       items: value.items.map((item: Record<string, unknown>) => ({
@@ -417,12 +443,19 @@ export class OrderManagementComponent implements OnInit {
         quantity: Number(item['quantity']),
         unitPrice: Number(item['unitPrice']),
         discountPercent: Number(item['discountPercent']),
+        discountAmount: Number(item['discountAmount'] || 0),
+        taxPercent: Number(item['taxPercent'] || 0),
         note: String(item['note'] ?? '').trim() || undefined,
       })),
     };
   }
 
   private toApiDateTime(value?: string): string | undefined { return value || undefined; }
+  private lineTotalBeforeFixedDiscount(group: AbstractControl): number {
+    const value = group.getRawValue();
+    return Math.round(Number(value.quantity || 0) * Number(value.unitPrice || 0) *
+      (1 - Number(value.discountPercent || 0) / 100) * 100) / 100;
+  }
   private toLocalInput(value?: string): string { if (!value) return ''; const date = new Date(value); const offset = date.getTimezoneOffset(); return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16); }
   private readonly readError = apiErrorMessage;
   private showToast(message: string): void { this.toastMessage.set(message); window.setTimeout(() => this.toastMessage.set(''), 3200); }

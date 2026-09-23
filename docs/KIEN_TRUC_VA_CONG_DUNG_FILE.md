@@ -178,6 +178,7 @@ Mỗi feature chỉ giữ `.ts` xử lý logic và `.html` lắp các shared com
 | `005_AddOrderStockWorkflow.sql` | Thêm cờ `DaTruKho` để một đơn đã giao chỉ trừ tồn thực tế đúng một lần. |
 | `006_AddMultipleAccountRoles.sql` | Chuyển quan hệ tài khoản/nhóm sang bảng nhiều-nhiều. |
 | `007_NormalizeDomains.sql` | Kiểm tra trước, thêm CHECK constraints, đặt miền ngày và bỏ cột/function không dùng. |
+| `008_OrderDiscountsAndTaxes.sql` | Bổ sung giảm giá tiền, thuế % từng mặt hàng và thuế % hóa đơn; giá trị cũ giữ nguyên. |
 | `Initialize.sql` | Tạo database mới bằng baseline và áp dụng toàn bộ migration. |
 
 `QuanLyDonDatHangDB.sql` là baseline schema lịch sử; không chạy riêng với ứng dụng hiện tại. Dùng `Initialize.sql` khi tạo database mới. Trigger `trg_CapNhatTongTienDonHang` tính lại `TongTienHang`; `ThanhTien` và `TongThanhToan` là computed column nên API không ghi trực tiếp.
@@ -196,6 +197,8 @@ Mỗi feature chỉ giữ `.ts` xử lý logic và `.html` lắp các shared com
 - Đơn Đã giao và Đã hủy bị khóa chỉnh sửa/xóa để không làm sai lịch sử kho.
 - Trang Hàng hóa tính `tồn sau đơn = tồn thực tế - số lượng trong các đơn chưa giao/chưa hủy`; kết quả âm và sản phẩm thiếu được tô đỏ.
 - Tổng thanh toán âm bị chặn ở Angular và Repository.
+- Mỗi mặt hàng hỗ trợ đồng thời giảm giá theo phần trăm và số tiền; số tiền giảm áp dụng sau phần trăm.
+- Thuế từng mặt hàng và thuế hóa đơn nhận tỷ lệ phần trăm; hệ thống tự tính tiền thuế và cộng vào tổng đơn.
 - Lọc nâng cao theo người tạo, người giao, khoảng tổng tiền; sắp xếp ngày giao/tổng tiền.
 - Bộ lọc và phân trang của danh sách đơn được giữ cố định; chỉ thân bảng cuộn.
 - Nhóm Admin luôn nhận toàn bộ quyền hoạt động ở cả dữ liệu cấp quyền và lúc phát JWT.

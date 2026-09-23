@@ -6,6 +6,8 @@ EF Core không tạo sẵn DTO cho HTTP API. Khi scaffold database, EF tạo **E
 
 Ví dụ `OrderEntity` có `ManagerEmployeeId`, `StockDeducted`, ngày tạo/cập nhật và navigation `Items`. Khi tạo đơn, client không được tự gán người tạo, cờ đã trừ kho hoặc tổng tiền đã tính. Request DTO chỉ nhận các trường người dùng được phép nhập; người tạo lấy từ JWT và tổng tiền được hệ thống tính. Response chi tiết lại cần tên khách hàng, tên nhân viên, thành tiền từng dòng: dữ liệu tổng hợp không tương ứng một bảng duy nhất.
 
+Trong dòng đơn, `DiscountPercent` và `DiscountAmount` là hai mức giảm được cộng theo thứ tự: tính phần trăm trước, trừ số tiền sau. `TaxPercent` của mặt hàng tính trên thành tiền sau giảm. Thuế hóa đơn cũng nhận `TaxPercent`, tính trên tổng hàng sau giảm giá toàn đơn; `TaxAmount`, thành tiền từng dòng và tổng thanh toán do hệ thống trả về/tính toán, không nhận số tiền thuế nhập tay.
+
 | Loại | Trách nhiệm | Ví dụ |
 |---|---|---|
 | Entity | Ánh xạ và lưu dữ liệu bằng EF Core | `OrderEntity`, `AccountEntity` |

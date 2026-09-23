@@ -9,3 +9,4 @@
 :r Database/006_AddMultipleAccountRoles.sql
 :setvar ApplyChanges 1
 :r Database/007_NormalizeDomains.sql
+:r Database/008_OrderDiscountsAndTaxes.sql

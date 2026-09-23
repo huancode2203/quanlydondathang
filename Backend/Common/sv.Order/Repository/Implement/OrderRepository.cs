@@ -139,7 +139,7 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
                    d.NgayDatHang AS OrderedAt, d.NgayGiaoDuKien AS ExpectedDeliveryAt,
                    d.NgayGiaoThucTe AS DeliveredAt, d.DiaChiGiaoHang AS DeliveryAddress,
                    d.TongTienHang AS MerchandiseTotal, d.TienGiamGia AS DiscountAmount,
-                   d.TienThue AS TaxAmount, d.PhiGiaoHang AS ShippingFee,
+                   d.PhanTramThue AS TaxPercent, d.TienThue AS TaxAmount, d.PhiGiaoHang AS ShippingFee,
                    d.TongThanhToan AS GrandTotal, d.TrangThai AS Status, d.GhiChu AS Note,
                    (SELECT COUNT(1) FROM tbl_ChiTietDonDatHang x WHERE x.DonDatHangID = d.DonDatHangID) AS ItemCount
             FROM tbl_DonDatHang d
@@ -151,7 +151,8 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
             SELECT ct.ChiTietDonDatHangID AS Id, ct.HangHoaID AS ProductId,
                    h.MaHang AS ProductCode, h.TenHang AS ProductName, h.DonViTinh AS Unit,
                    ct.SoLuong AS Quantity, ct.DonGia AS UnitPrice,
-                   ct.PhanTramGiamGia AS DiscountPercent, ct.ThanhTien AS LineTotal,
+                   ct.PhanTramGiamGia AS DiscountPercent, ct.TienGiamGia AS DiscountAmount,
+                   ct.PhanTramThue AS TaxPercent, ct.ThanhTien AS LineTotal, ct.TienThue AS TaxAmount,
                    h.SoLuongTon AS StockQuantity, ct.GhiChu AS Note
             FROM tbl_ChiTietDonDatHang ct
             INNER JOIN tbl_HangHoa h ON h.HangHoaID = ct.HangHoaID
@@ -199,9 +200,9 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
         var entity = MapNewEntity(request, creatorEmployeeId);
         dbContext.Orders.Add(entity);
         await dbContext.SaveChangesAsync(cancellationToken);
-        // The line trigger establishes the merchandise total first. Apply the
-        // discount afterwards so the total constraint also holds during INSERT.
-        ApplyAmounts(entity, request);
+        // The line trigger establishes the pre-tax subtotal. Calculate and save
+        // the combined item and invoice tax only after all lines exist.
+        await ApplyAmountsAsync(entity, request, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return (await GetByIdAsync(entity.Id, cancellationToken))!;
@@ -226,6 +227,7 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
         // Clear charges inside this transaction until all new lines are present.
         entity.DiscountAmount = 0;
         entity.TaxAmount = 0;
+        entity.TaxPercent = request.TaxPercent;
         entity.ShippingFee = 0;
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -248,7 +250,7 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
         dbContext.OrderItems.RemoveRange(entity.Items);
         entity.Items = request.Items.Select(MapItem).ToList();
         await dbContext.SaveChangesAsync(cancellationToken);
-        ApplyAmounts(entity, request);
+        await ApplyAmountsAsync(entity, request, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return await GetByIdAsync(id, cancellationToken);
@@ -273,20 +275,33 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
         ManagerEmployeeId = creatorEmployeeId, DeliveryEmployeeId = request.DeliveryEmployeeId,
         OrderedAt = request.OrderedAt, ExpectedDeliveryAt = request.ExpectedDeliveryAt,
         DeliveredAt = request.DeliveredAt, DeliveryAddress = request.DeliveryAddress.Trim(),
-        Status = request.Status, Note = request.Note?.Trim(),
+        TaxPercent = request.TaxPercent, Status = request.Status, Note = request.Note?.Trim(),
         Items = request.Items.Select(MapItem).ToList()
     };
 
     private static OrderItemEntity MapItem(SaveOrderItemRequest item) => new()
     {
         ProductId = item.ProductId, Quantity = item.Quantity, UnitPrice = item.UnitPrice,
-        DiscountPercent = item.DiscountPercent, Note = item.Note?.Trim()
+        DiscountPercent = item.DiscountPercent, DiscountAmount = item.DiscountAmount,
+        TaxPercent = item.TaxPercent, Note = item.Note?.Trim()
     };
 
-    private static void ApplyAmounts(OrderEntity entity, SaveOrderRequest request)
+    private async Task ApplyAmountsAsync(OrderEntity entity, SaveOrderRequest request, CancellationToken token)
     {
+        const string sql = """
+            SELECT ISNULL(SUM(ThanhTien), 0) AS MerchandiseTotal,
+                   ISNULL(SUM(TienThue), 0) AS ItemTaxTotal
+            FROM dbo.tbl_ChiTietDonDatHang WHERE DonDatHangID = @OrderId;
+            """;
+        var totals = await dbContext.Database.GetDbConnection().QuerySingleAsync<(decimal MerchandiseTotal, decimal ItemTaxTotal)>(
+            new CommandDefinition(sql, new { OrderId = entity.Id },
+                transaction: dbContext.Database.CurrentTransaction?.GetDbTransaction(), cancellationToken: token));
+        var invoiceTax = decimal.Round(
+            Math.Max(0, totals.MerchandiseTotal - request.DiscountAmount) * request.TaxPercent / 100m,
+            2, MidpointRounding.AwayFromZero);
         entity.DiscountAmount = request.DiscountAmount;
-        entity.TaxAmount = request.TaxAmount;
+        entity.TaxPercent = request.TaxPercent;
+        entity.TaxAmount = totals.ItemTaxTotal + invoiceTax;
         entity.ShippingFee = request.ShippingFee;
     }
 
@@ -306,15 +321,29 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
             throw new DomainValidationException("Ngày giao thực tế không được trước ngày đặt hàng.");
         if (request.DeliveredAt.HasValue && (request.Status != "DA_GIAO" || request.DeliveredAt > now))
             throw new DomainValidationException("Ngày giao thực tế chỉ được nhập cho đơn đã giao và không được nằm trong tương lai.");
-        // SQL rounds each computed ThanhTien to decimal(18,2), then sums it.
-        var lineTotals = request.Items.Select(x => decimal.Round(
-            x.Quantity * x.UnitPrice * (1 - x.DiscountPercent / 100m), 2, MidpointRounding.AwayFromZero)).ToArray();
+        // SQL rounds each discounted line before adding its fixed deduction and tax.
+        var lines = request.Items.Select(item =>
+        {
+            var afterPercent = decimal.Round(item.Quantity * item.UnitPrice *
+                (1 - item.DiscountPercent / 100m), 2, MidpointRounding.AwayFromZero);
+            if (item.DiscountAmount > afterPercent)
+                throw new DomainValidationException("Tiền giảm giá của mặt hàng không được lớn hơn thành tiền sau khi giảm phần trăm.");
+            var net = afterPercent - item.DiscountAmount;
+            var tax = decimal.Round(net * item.TaxPercent / 100m, 2, MidpointRounding.AwayFromZero);
+            return (Net: net, Tax: tax);
+        }).ToArray();
         const decimal maxAmount = 999999999999.99m;
-        if (lineTotals.Any(x => x < 0 || x > maxAmount))
+        if (lines.Any(x => x.Net < 0 || x.Net > maxAmount || x.Tax < 0 || x.Tax > maxAmount))
             throw new DomainValidationException("Thành tiền hàng hóa vượt miền giá trị cho phép.");
-        var merchandiseTotal = lineTotals.Sum();
-        var grandTotal = merchandiseTotal - request.DiscountAmount + request.TaxAmount + request.ShippingFee;
-        if (merchandiseTotal > maxAmount || grandTotal > maxAmount)
+        var merchandiseTotal = lines.Sum(x => x.Net);
+        if (request.DiscountAmount > merchandiseTotal)
+            throw new DomainValidationException("Giảm giá toàn đơn không được lớn hơn tổng tiền hàng.");
+        var itemTaxTotal = lines.Sum(x => x.Tax);
+        var invoiceTax = decimal.Round((merchandiseTotal - request.DiscountAmount) * request.TaxPercent / 100m,
+            2, MidpointRounding.AwayFromZero);
+        var combinedTax = itemTaxTotal + invoiceTax;
+        var grandTotal = merchandiseTotal - request.DiscountAmount + combinedTax + request.ShippingFee;
+        if (merchandiseTotal > maxAmount || combinedTax > maxAmount || grandTotal > maxAmount)
             throw new DomainValidationException("Tổng tiền đơn hàng vượt miền giá trị cho phép.");
         if (grandTotal < 0) throw new DomainValidationException("Tổng tiền không được âm. Vui lòng kiểm tra tiền giảm giá.");
     }

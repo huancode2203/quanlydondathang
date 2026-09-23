@@ -8,7 +8,10 @@ public sealed class OrderItemEntity
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal DiscountPercent { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public decimal TaxPercent { get; set; }
     public decimal LineTotal { get; private set; }
+    public decimal TaxAmount { get; private set; }
     public string? Note { get; set; }
     public OrderEntity Order { get; set; } = null!;
 }

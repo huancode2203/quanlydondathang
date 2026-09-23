@@ -13,6 +13,7 @@ public sealed class OrderEntity
     public required string DeliveryAddress { get; set; }
     public decimal MerchandiseTotal { get; private set; }
     public decimal DiscountAmount { get; set; }
+    public decimal TaxPercent { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal ShippingFee { get; set; }
     public decimal GrandTotal { get; private set; }

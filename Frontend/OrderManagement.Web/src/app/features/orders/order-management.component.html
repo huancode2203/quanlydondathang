@@ -197,13 +197,13 @@
           <div class="section-title"><span>02</span>
             <div>
               <h3>Chi tiết hàng hóa</h3>
-              <p>Đơn giá được lấy từ danh mục và có thể điều chỉnh</p>
+              <p>Giảm giá theo phần trăm/giá trị; thuế từng mặt hàng tự tính theo tỷ lệ</p>
             </div><button class="add-line" type="button" [disabled]="orderLocked()" (click)="addItem()">+ Thêm
               dòng</button>
           </div>
           <div class="item-list" formArrayName="items">
             <div class="item-head"><span>Hàng hóa</span><span>Số lượng</span><span>Đơn giá</span><span>Giảm
-                %</span><span>Thành tiền</span><span></span></div>
+                %</span><span>Giảm tiền</span><span>Thuế %</span><span>Thành tiền</span><span></span></div>
             @for (group of items.controls; track $index; let i = $index) {
             <div class="item-row" [formGroupName]="i">
               <div class="product-cell"><select formControlName="productId" (change)="productChanged(group, i)">
@@ -215,7 +215,12 @@
               <input type="number" min="0" step="1000" formControlName="unitPrice" aria-label="Đơn giá" />
               <input type="number" min="0" max="100" formControlName="discountPercent"
                 aria-label="Phần trăm giảm giá" />
-              <strong>{{ lineTotal(group) | number:'1.0-0' }} ₫</strong>
+              <input type="number" min="0" step="1000" formControlName="discountAmount"
+                aria-label="Tiền giảm giá mặt hàng" />
+              <input type="number" min="0" max="100" step="0.01" formControlName="taxPercent"
+                aria-label="Thuế suất mặt hàng phần trăm" />
+              <div class="item-total"><strong>{{ lineTotal(group) | number:'1.0-0' }} ₫</strong><small>
+                  Thuế {{ lineTax(group) | number:'1.0-0' }} ₫</small></div>
               <button type="button" [disabled]="orderLocked() || items.length === 1" (click)="removeItem(i)"
                 aria-label="Xóa hàng hóa">×</button>
             </div>
@@ -231,10 +236,13 @@
             </div>
           </div>
           <div class="payment-grid">
-            <label><span>Giảm giá đơn</span><input type="number" min="0" formControlName="discountAmount" /></label>
-            <label><span>Tiền thuế</span><input type="number" min="0" formControlName="taxAmount" /></label>
+            <label><span>Giảm giá đơn</span><input type="number" min="0" step="0.01" formControlName="discountAmount" /></label>
+            <label><span>Thuế hóa đơn (%)</span><input type="number" min="0" max="100" step="0.01"
+                formControlName="taxPercent" /></label>
             <label><span>Phí giao hàng</span><input type="number" min="0" formControlName="shippingFee" /></label>
             <div class="total-box" [class.negative]="grandTotal() < 0"><span>Tổng tiền hàng <b>{{ merchandiseTotal() |
+                  number:'1.0-0' }} ₫</b></span><span>Thuế hàng hóa <b>{{ itemTaxTotal() | number:'1.0-0' }} ₫</b></span>
+              <span>Thuế hóa đơn ({{ orderForm.get('taxPercent')?.value || 0 }}%) <b>{{ invoiceTaxAmount() |
                   number:'1.0-0' }} ₫</b></span><span class="grand">Tổng tiền <b>{{ grandTotal() | number:'1.0-0' }}
                   ₫</b></span>@if(grandTotal() < 0){<small>Tổng tiền không được âm.</small>}</div>
           </div>

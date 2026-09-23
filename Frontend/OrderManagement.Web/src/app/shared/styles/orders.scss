@@ -78,11 +78,13 @@ td small { color: #7d91a0; margin-top: 5px; font-size: .72rem; }
 .field-error { min-height: 14px; color: #c73542; font-size: .65rem; }
 .status-help { min-height: 14px; color: #6f8798; font-size: .65rem; line-height: 1.35; }
 .item-list { overflow-x: auto; }
-.item-head,.item-row { min-width: 850px; display: grid; grid-template-columns: minmax(260px,2.1fr) .65fr 1fr .65fr 1.05fr 38px; gap: 9px; align-items: center; }
+.item-head,.item-row { min-width: 1120px; display: grid; grid-template-columns: minmax(240px,2fr) .58fr .85fr .58fr .8fr .58fr 1fr 38px; gap: 9px; align-items: center; }
 .item-head { padding: 0 0 8px; color: #718797; font-size: .69rem; font-weight: 700; }
 .item-row { padding: 9px 0; border-top: 1px solid #edf2f5; }
 .item-row input,.item-row select { height: 38px; }
 .item-row strong { text-align: right; color: #173b57; font-size: .8rem; }
+.item-total { min-width: 0; text-align: right; }
+.item-total small { display: block; color: #718797; font-size: .66rem; }
 .product-cell{display:grid;gap:4px}
 .item-row button { width: 32px; height: 32px; border: 0; border-radius: 7px; background: #fff0f1; color: #c93240; font-size: 1.2rem; }
 .item-row button:disabled { opacity: .35; cursor: not-allowed; }

@@ -65,11 +65,13 @@ public sealed class OrdersController(IOrderRepository repository) : ApiControlle
         current.Code != request.Code.Trim() || current.CustomerId != request.CustomerId ||
         current.OrderedAt != request.OrderedAt || current.ExpectedDeliveryAt != request.ExpectedDeliveryAt ||
         current.DeliveryAddress != request.DeliveryAddress.Trim() || current.DiscountAmount != request.DiscountAmount ||
-        current.TaxAmount != request.TaxAmount || current.ShippingFee != request.ShippingFee ||
+        current.TaxPercent != request.TaxPercent || current.ShippingFee != request.ShippingFee ||
         current.Note != request.Note?.Trim() || current.Items.Count != request.Items.Count ||
         current.Items.Zip(request.Items).Any(pair => pair.First.ProductId != pair.Second.ProductId ||
             pair.First.Quantity != pair.Second.Quantity || pair.First.UnitPrice != pair.Second.UnitPrice ||
-            pair.First.DiscountPercent != pair.Second.DiscountPercent || pair.First.Note != pair.Second.Note?.Trim());
+            pair.First.DiscountPercent != pair.Second.DiscountPercent ||
+            pair.First.DiscountAmount != pair.Second.DiscountAmount || pair.First.TaxPercent != pair.Second.TaxPercent ||
+            pair.First.Note != pair.Second.Note?.Trim());
 
     [HttpPost("delete"), RequirePermission("ORDER_DELETE")]
     public async Task<IActionResult> Delete(OrderIdRequest request, CancellationToken token) =>

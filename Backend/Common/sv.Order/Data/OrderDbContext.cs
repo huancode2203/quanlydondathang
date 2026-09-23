@@ -33,6 +33,7 @@ public sealed class OrderDbContext(DbContextOptions<OrderDbContext> options) : D
         order.Property(x => x.DeliveryAddress).HasColumnName("DiaChiGiaoHang").HasMaxLength(500);
         order.Property(x => x.MerchandiseTotal).HasColumnName("TongTienHang").HasPrecision(18, 2);
         order.Property(x => x.DiscountAmount).HasColumnName("TienGiamGia").HasPrecision(18, 2);
+        order.Property(x => x.TaxPercent).HasColumnName("PhanTramThue").HasPrecision(5, 2);
         order.Property(x => x.TaxAmount).HasColumnName("TienThue").HasPrecision(18, 2);
         order.Property(x => x.ShippingFee).HasColumnName("PhiGiaoHang").HasPrecision(18, 2);
         order.Property(x => x.GrandTotal).HasColumnName("TongThanhToan").HasPrecision(18, 2).ValueGeneratedOnAddOrUpdate();
@@ -51,7 +52,10 @@ public sealed class OrderDbContext(DbContextOptions<OrderDbContext> options) : D
         item.Property(x => x.Quantity).HasColumnName("SoLuong").HasPrecision(18, 2);
         item.Property(x => x.UnitPrice).HasColumnName("DonGia").HasPrecision(18, 2);
         item.Property(x => x.DiscountPercent).HasColumnName("PhanTramGiamGia").HasPrecision(5, 2);
+        item.Property(x => x.DiscountAmount).HasColumnName("TienGiamGia").HasPrecision(18, 2);
+        item.Property(x => x.TaxPercent).HasColumnName("PhanTramThue").HasPrecision(5, 2);
         item.Property(x => x.LineTotal).HasColumnName("ThanhTien").HasPrecision(18, 2).ValueGeneratedOnAddOrUpdate();
+        item.Property(x => x.TaxAmount).HasColumnName("TienThue").HasPrecision(18, 2).ValueGeneratedOnAddOrUpdate();
         item.Property(x => x.Note).HasColumnName("GhiChu").HasMaxLength(500);
         item.HasIndex(x => new { x.OrderId, x.ProductId }).IsUnique();
         item.HasOne(x => x.Order).WithMany(x => x.Items).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);

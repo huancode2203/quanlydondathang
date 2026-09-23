@@ -56,6 +56,7 @@ public sealed class OrderDetailDto : OrderListItemDto
     public DateTime? DeliveredAt { get; init; }
     public decimal MerchandiseTotal { get; init; }
     public decimal DiscountAmount { get; init; }
+    public decimal TaxPercent { get; init; }
     public decimal TaxAmount { get; init; }
     public decimal ShippingFee { get; init; }
     public string? Note { get; init; }
@@ -72,7 +73,10 @@ public sealed class OrderItemDto
     public decimal Quantity { get; init; }
     public decimal UnitPrice { get; init; }
     public decimal DiscountPercent { get; init; }
+    public decimal DiscountAmount { get; init; }
+    public decimal TaxPercent { get; init; }
     public decimal LineTotal { get; init; }
+    public decimal TaxAmount { get; init; }
     public decimal StockQuantity { get; init; }
     public string? Note { get; init; }
 }
@@ -88,8 +92,8 @@ public class SaveOrderRequest : IValidatableObject
     [Required, StringLength(500)] public string DeliveryAddress { get; init; } = string.Empty;
     [DecimalScale(2), Range(typeof(decimal), "0", "999999999999.99")]
     public decimal DiscountAmount { get; init; }
-    [DecimalScale(2), Range(typeof(decimal), "0", "999999999999.99")]
-    public decimal TaxAmount { get; init; }
+    [JsonRequired, DecimalScale(2), Range(typeof(decimal), "0", "100")]
+    public decimal TaxPercent { get; init; }
     [DecimalScale(2), Range(typeof(decimal), "0", "999999999999.99")]
     public decimal ShippingFee { get; init; }
     [Required, RegularExpression("^(CHO_XAC_NHAN|DA_XAC_NHAN|DANG_CHUAN_BI|CHO_GIAO_HANG|DANG_GIAO|DA_GIAO|DA_HUY)$",
@@ -116,6 +120,8 @@ public sealed class SaveOrderItemRequest
     [DecimalScale(2), Range(typeof(decimal), "0.01", "999999999.99")] public decimal Quantity { get; init; }
     [JsonRequired, DecimalScale(2), Range(typeof(decimal), "0", "999999999999.99")] public decimal UnitPrice { get; init; }
     [DecimalScale(2), Range(typeof(decimal), "0", "100")] public decimal DiscountPercent { get; init; }
+    [JsonRequired, DecimalScale(2), Range(typeof(decimal), "0", "999999999999.99")] public decimal DiscountAmount { get; init; }
+    [JsonRequired, DecimalScale(2), Range(typeof(decimal), "0", "100")] public decimal TaxPercent { get; init; }
     [StringLength(500)] public string? Note { get; init; }
 }
 

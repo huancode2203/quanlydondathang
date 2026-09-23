@@ -24,16 +24,20 @@ internal static class DatabaseChecks
         try
         {
             var scripts = new[] { "QuanLyDonDatHangDB.sql", "002_AddProductStock.sql", "003_EnsureAdminFullPermissions.sql",
-                "004_AddAccountPermissions.sql", "005_AddOrderStockWorkflow.sql", "006_AddMultipleAccountRoles.sql", "007_NormalizeDomains.sql" };
+                "004_AddAccountPermissions.sql", "005_AddOrderStockWorkflow.sql", "006_AddMultipleAccountRoles.sql",
+                "007_NormalizeDomains.sql", "008_OrderDiscountsAndTaxes.sql" };
             foreach (var name in scripts)
             {
                 var sql = (await File.ReadAllTextAsync(Path.Combine(root, "Database", name)))
                     .Replace("QuanLyDonDatHangDB", database).Replace("$(ApplyChanges)", "1");
-                foreach (var batch in Regex.Split(sql, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase))
+                var batches = Regex.Split(sql, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase);
+                for (var index = 0; index < batches.Length; index++)
                 {
+                    var batch = batches[index];
                     if (string.IsNullOrWhiteSpace(batch)) continue;
                     await using var command = new SqlCommand(batch, admin) { CommandTimeout = 60 };
-                    await command.ExecuteNonQueryAsync();
+                    try { await command.ExecuteNonQueryAsync(); }
+                    catch (Exception exception) { throw new InvalidOperationException($"Database initialization failed at {name}, batch {index + 1}.", exception); }
                 }
             }
             connection.InitialCatalog = database;
@@ -62,8 +66,9 @@ internal static class DatabaseChecks
                 // Dictionary below omits id for create, preserving strict JSON contract.
                 code, customerId, deliveryEmployeeId = 3, orderedAt = now.AddMinutes(-10),
                 expectedDeliveryAt = now.AddDays(1), deliveryAddress = "Test Address", status,
-                discountAmount = 20, taxAmount = 1, shippingFee = 2,
-                items = new[] { new { productId, quantity, unitPrice = 100, discountPercent = 0 } }
+                discountAmount = 20, taxPercent = 10, shippingFee = 2,
+                items = new[] { new { productId, quantity, unitPrice = 100, discountPercent = 10,
+                    discountAmount = 5, taxPercent = 5 } }
             };
             object Update(long id, string code, decimal quantity, string status)
             {
@@ -80,7 +85,15 @@ internal static class DatabaseChecks
             }
             var order = await Post("orders/create", Order("TEST-O", 2), 201);
             var orderId = order.GetProperty("id").GetInt64();
-            if (order.GetProperty("grandTotal").GetDecimal() != 183) throw new Exception("Trigger total incorrect");
+            if (order.GetProperty("merchandiseTotal").GetDecimal() != 175 ||
+                order.GetProperty("taxAmount").GetDecimal() != 24.25m ||
+                order.GetProperty("grandTotal").GetDecimal() != 181.25m)
+                throw new Exception("Percentage/fixed discounts or stacked taxes were calculated incorrectly");
+            var orderDetail = await Post("orders/detail", new { id = orderId });
+            var line = orderDetail.GetProperty("items")[0];
+            if (line.GetProperty("discountAmount").GetDecimal() != 5 ||
+                line.GetProperty("taxPercent").GetDecimal() != 5 || line.GetProperty("taxAmount").GetDecimal() != 8.75m)
+                throw new Exception("Line discount/tax rates were not persisted and returned");
             await Stock(10, 8);
             await Post("orders/update", Update(orderId, "TEST-O", 12, "CHO_XAC_NHAN"));
             await Stock(10, -2);

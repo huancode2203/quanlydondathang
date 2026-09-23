@@ -58,7 +58,7 @@ await Check("missing record", "/api/orders/detail", "{\"id\":999}", 404);
 await Check("domain conflict", "/api/orders/delete", "{\"id\":409}", 409);
 await Check("domain validation", "/api/orders/delete", "{\"id\":400}", 400);
 await Check("unexpected exception", "/api/orders/delete", "{\"id\":500}", 500);
-const string updateTemplate = "\"code\":\"CURRENT\",\"customerId\":1,\"deliveryEmployeeId\":3,\"orderedAt\":\"2026-09-23T08:00:00\",\"expectedDeliveryAt\":\"2026-09-24T08:00:00\",\"deliveryAddress\":\"Test Address\",\"status\":\"{0}\",\"items\":[{{\"productId\":1,\"quantity\":1,\"unitPrice\":100,\"discountPercent\":0}}]";
+const string updateTemplate = "\"code\":\"CURRENT\",\"customerId\":1,\"deliveryEmployeeId\":3,\"orderedAt\":\"2026-09-23T08:00:00\",\"expectedDeliveryAt\":\"2026-09-24T08:00:00\",\"deliveryAddress\":\"Test Address\",\"discountAmount\":0,\"taxPercent\":0,\"shippingFee\":0,\"status\":\"{0}\",\"items\":[{{\"productId\":1,\"quantity\":1,\"unitPrice\":100,\"discountPercent\":0,\"discountAmount\":0,\"taxPercent\":0}}]";
 SetToken("ORDER_VIEW", "ORDER_UPDATE");
 await Check("UPDATE cannot approve without granular right", "/api/orders/update", "{\"id\":1," + string.Format(updateTemplate, "DA_XAC_NHAN") + "}", 403);
 SetToken("ORDER_VIEW", "ORDER_UPDATE", "ORDER_APPROVE");
@@ -70,10 +70,11 @@ SetToken("ORDER_VIEW", "ORDER_CREATE", "ORDER_UPDATE", "ORDER_APPROVE", "ORDER_D
 await Check("role update requires explicit list", "/api/permissions/roles/update", "{\"id\":1}", 400);
 await Check("account update requires explicit mode", "/api/permissions/accounts/update", "{\"id\":1,\"roleIds\":[1],\"permissionIds\":[]}", 400);
 const string validOrder = """
-{"code":"TEST","customerId":1,"orderedAt":"2026-09-01T08:00:00","expectedDeliveryAt":"2026-09-30T08:00:00","deliveryAddress":"Test","items":[{"productId":1,"quantity":1,"unitPrice":100}]}
+{"code":"TEST","customerId":1,"orderedAt":"2026-09-01T08:00:00","expectedDeliveryAt":"2026-09-30T08:00:00","deliveryAddress":"Test","taxPercent":0,"items":[{"productId":1,"quantity":1,"unitPrice":100,"discountAmount":0,"taxPercent":0}]}
 """;
 await Check("create success envelope", "/api/orders/create", validOrder, 201);
-await Check("null line", "/api/orders/create", validOrder.Replace("{\"productId\":1,\"quantity\":1,\"unitPrice\":100}", "null"), 400);
+await Check("null line", "/api/orders/create", validOrder.Replace(
+    "{\"productId\":1,\"quantity\":1,\"unitPrice\":100,\"discountAmount\":0,\"taxPercent\":0}", "null"), 400);
 await Check("missing item price", "/api/orders/create", validOrder.Replace(",\"unitPrice\":100", ""), 400);
 Console.WriteLine($"PASS: {passed} isolated HTTP contract checks; no database mutations.");
 
