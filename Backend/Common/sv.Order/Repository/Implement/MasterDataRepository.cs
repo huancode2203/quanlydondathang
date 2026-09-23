@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Sv.Order.Data;
 using Sv.Order.DTOs;
 using Sv.Order.Entities;
+using Sv.Order.Exceptions;
 using Sv.Order.Repository.Interface;
 
 namespace Sv.Order.Repository.Implement;
@@ -53,6 +54,8 @@ public sealed class MasterDataRepository(OrderDbContext dbContext) : IMasterData
     {
         var entity = await dbContext.Customers.SingleOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
         if (entity is null) return false;
+        if (await dbContext.Orders.AnyAsync(x => x.CustomerId == id && x.Status != "DA_GIAO" && x.Status != "DA_HUY", cancellationToken))
+            throw new DomainConflictException("Khách hàng đang có đơn chưa kết thúc, không thể xóa.");
         entity.IsDeleted = true; entity.Status = "INACTIVE"; entity.UpdatedAt = DateTime.Now;
         await dbContext.SaveChangesAsync(cancellationToken);
         return true;
@@ -111,6 +114,8 @@ public sealed class MasterDataRepository(OrderDbContext dbContext) : IMasterData
     {
         var entity = await dbContext.Products.SingleOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
         if (entity is null) return false;
+        if (await dbContext.OrderItems.AnyAsync(x => x.ProductId == id && x.Order.Status != "DA_GIAO" && x.Order.Status != "DA_HUY", cancellationToken))
+            throw new DomainConflictException("Hàng hóa đang có trong đơn chưa kết thúc, không thể xóa.");
         entity.IsDeleted = true; entity.Status = "INACTIVE"; entity.UpdatedAt = DateTime.Now;
         await dbContext.SaveChangesAsync(cancellationToken);
         return true;
@@ -119,13 +124,13 @@ public sealed class MasterDataRepository(OrderDbContext dbContext) : IMasterData
     private async Task EnsureCustomerCodeAsync(string code, int? exceptId, CancellationToken token)
     {
         if (await dbContext.Customers.AnyAsync(x => x.Code == code.Trim() && x.Id != exceptId, token))
-            throw new InvalidOperationException($"Mã khách hàng {code} đã tồn tại.");
+            throw new DomainConflictException($"Mã khách hàng {code} đã tồn tại.");
     }
 
     private async Task EnsureProductCodeAsync(string code, int? exceptId, CancellationToken token)
     {
         if (await dbContext.Products.AnyAsync(x => x.Code == code.Trim() && x.Id != exceptId, token))
-            throw new InvalidOperationException($"Mã hàng hóa {code} đã tồn tại.");
+            throw new DomainConflictException($"Mã hàng hóa {code} đã tồn tại.");
     }
 
     private async Task<ProductDto> GetProductAsync(int id, CancellationToken token)

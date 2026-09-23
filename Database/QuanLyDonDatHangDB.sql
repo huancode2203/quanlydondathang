@@ -118,6 +118,8 @@ CREATE TABLE tbl_CapQuyenTaiKhoan (
 );
 GO
 
+-- Historical baseline: do not use this file alone with the current application.
+-- Use Database/Initialize.sql for a new database; it also applies all migrations.
 -- ============================================================
 -- III. KHÁCH HÀNG
 -- ============================================================

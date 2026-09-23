@@ -1,9 +1,11 @@
 using System.Data;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Sv.Order.Data;
 using Sv.Order.DTOs;
 using Sv.Order.Entities;
+using Sv.Order.Exceptions;
 using Sv.Order.Repository.Interface;
 
 namespace Sv.Order.Repository.Implement;
@@ -31,11 +33,13 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
     public async Task<PagedResult<OrderListItemDto>> SearchAsync(OrderSearchRequest request, CancellationToken cancellationToken)
     {
         if (request.FromDate.HasValue && request.ToDate.HasValue && request.FromDate.Value.Date > request.ToDate.Value.Date)
-            throw new ArgumentException("Từ ngày không được lớn hơn đến ngày.");
+            throw new DomainValidationException("Từ ngày không được lớn hơn đến ngày.");
         if (request.MinTotal < 0 || request.MaxTotal < 0)
-            throw new ArgumentException("Khoảng tổng tiền không được âm.");
+            throw new DomainValidationException("Khoảng tổng tiền không được âm.");
         if (request.MinTotal.HasValue && request.MaxTotal.HasValue && request.MinTotal > request.MaxTotal)
-            throw new ArgumentException("Tổng tiền nhỏ nhất không được lớn hơn tổng tiền lớn nhất.");
+            throw new DomainValidationException("Tổng tiền nhỏ nhất không được lớn hơn tổng tiền lớn nhất.");
+        if (!string.IsNullOrWhiteSpace(request.Status) && !ValidStatuses.Contains(request.Status))
+            throw new DomainValidationException("Trạng thái tìm kiếm không hợp lệ.");
         var conditions = new List<string> { "1 = 1" };
         var parameters = new DynamicParameters();
 
@@ -85,7 +89,7 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
             parameters.Add("MaxTotal", request.MaxTotal);
         }
 
-        parameters.Add("Offset", (request.Page - 1) * request.PageSize);
+        parameters.Add("Offset", ((long)request.Page - 1) * request.PageSize);
         parameters.Add("PageSize", request.PageSize);
         var where = string.Join(" AND ", conditions);
         var orderBy = request.Sort switch
@@ -184,15 +188,20 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
 
     public async Task<OrderDetailDto> CreateAsync(SaveOrderRequest request, int creatorEmployeeId, CancellationToken cancellationToken)
     {
-        ValidateRequest(request);
+        ValidateRequest(request, requireFutureDelivery: true);
         if (request.Status != "CHO_XAC_NHAN")
-            throw new ArgumentException("Đơn hàng mới phải bắt đầu ở trạng thái Chờ xác nhận.");
+            throw new DomainValidationException("Đơn hàng mới phải bắt đầu ở trạng thái Chờ xác nhận.");
         if (await dbContext.Orders.AnyAsync(x => x.Code == request.Code.Trim(), cancellationToken))
-            throw new InvalidOperationException($"Mã đơn hàng {request.Code} đã tồn tại.");
+            throw new DomainConflictException($"Mã đơn hàng {request.Code} đã tồn tại.");
 
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        await ValidateReferencesAsync(request, creatorEmployeeId, cancellationToken);
         var entity = MapNewEntity(request, creatorEmployeeId);
         dbContext.Orders.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        // The line trigger establishes the merchandise total first. Apply the
+        // discount afterwards so the total constraint also holds during INSERT.
+        ApplyAmounts(entity, request);
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return (await GetByIdAsync(entity.Id, cancellationToken))!;
@@ -200,17 +209,25 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
 
     public async Task<OrderDetailDto?> UpdateAsync(long id, SaveOrderRequest request, CancellationToken cancellationToken)
     {
-        ValidateRequest(request);
         await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var entity = await dbContext.Orders.Include(x => x.Items).SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (entity is null) return null;
+        ValidateRequest(request, requireFutureDelivery: request.ExpectedDeliveryAt != entity.ExpectedDeliveryAt);
         if (IsTerminalStatus(entity.Status))
-            throw new InvalidOperationException("Đơn hàng đã giao hoặc đã hủy là đơn kết thúc, không thể chỉnh sửa.");
+            throw new DomainConflictException("Đơn hàng đã giao hoặc đã hủy là đơn kết thúc, không thể chỉnh sửa.");
         ValidateStatusTransition(entity.Status, request.Status);
         if (RequiresDeliveryEmployee(request.Status) && !request.DeliveryEmployeeId.HasValue)
-            throw new ArgumentException("Phải chọn nhân viên giao hàng trước khi chuyển sang trạng thái giao hàng.");
+            throw new DomainValidationException("Phải chọn nhân viên giao hàng trước khi chuyển sang trạng thái giao hàng.");
         if (await dbContext.Orders.AnyAsync(x => x.Code == request.Code.Trim() && x.Id != id, cancellationToken))
-            throw new InvalidOperationException($"Mã đơn hàng {request.Code} đã tồn tại.");
+            throw new DomainConflictException($"Mã đơn hàng {request.Code} đã tồn tại.");
+
+        await ValidateReferencesAsync(request, entity.ManagerEmployeeId, cancellationToken);
+        // Child DELETE/INSERT statements fire the total trigger independently.
+        // Clear charges inside this transaction until all new lines are present.
+        entity.DiscountAmount = 0;
+        entity.TaxAmount = 0;
+        entity.ShippingFee = 0;
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         if (request.Status == "DA_GIAO")
         {
@@ -225,14 +242,13 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
         entity.ExpectedDeliveryAt = request.ExpectedDeliveryAt;
         entity.DeliveredAt = request.Status == "DA_GIAO" ? request.DeliveredAt ?? DateTime.Now : null;
         entity.DeliveryAddress = request.DeliveryAddress.Trim();
-        entity.DiscountAmount = request.DiscountAmount;
-        entity.TaxAmount = request.TaxAmount;
-        entity.ShippingFee = request.ShippingFee;
         entity.Status = request.Status;
         entity.Note = request.Note?.Trim();
         entity.UpdatedAt = DateTime.Now;
         dbContext.OrderItems.RemoveRange(entity.Items);
         entity.Items = request.Items.Select(MapItem).ToList();
+        await dbContext.SaveChangesAsync(cancellationToken);
+        ApplyAmounts(entity, request);
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return await GetByIdAsync(id, cancellationToken);
@@ -240,12 +256,14 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
 
     public async Task<bool> DeleteAsync(long id, CancellationToken cancellationToken)
     {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var entity = await dbContext.Orders.FindAsync([id], cancellationToken);
         if (entity is null) return false;
         if (IsTerminalStatus(entity.Status))
-            throw new InvalidOperationException("Không thể xóa đơn hàng đã giao hoặc đã hủy để bảo toàn lịch sử tồn kho.");
+            throw new DomainConflictException("Không thể xóa đơn hàng đã giao hoặc đã hủy để bảo toàn lịch sử tồn kho.");
         dbContext.Orders.Remove(entity);
         await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return true;
     }
 
@@ -255,8 +273,7 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
         ManagerEmployeeId = creatorEmployeeId, DeliveryEmployeeId = request.DeliveryEmployeeId,
         OrderedAt = request.OrderedAt, ExpectedDeliveryAt = request.ExpectedDeliveryAt,
         DeliveredAt = request.DeliveredAt, DeliveryAddress = request.DeliveryAddress.Trim(),
-        DiscountAmount = request.DiscountAmount, TaxAmount = request.TaxAmount,
-        ShippingFee = request.ShippingFee, Status = request.Status, Note = request.Note?.Trim(),
+        Status = request.Status, Note = request.Note?.Trim(),
         Items = request.Items.Select(MapItem).ToList()
     };
 
@@ -266,23 +283,58 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
         DiscountPercent = item.DiscountPercent, Note = item.Note?.Trim()
     };
 
-    private static void ValidateRequest(SaveOrderRequest request)
+    private static void ApplyAmounts(OrderEntity entity, SaveOrderRequest request)
     {
-        if (!ValidStatuses.Contains(request.Status)) throw new ArgumentException("Trạng thái đơn hàng không hợp lệ.");
+        entity.DiscountAmount = request.DiscountAmount;
+        entity.TaxAmount = request.TaxAmount;
+        entity.ShippingFee = request.ShippingFee;
+    }
+
+    private static void ValidateRequest(SaveOrderRequest request, bool requireFutureDelivery)
+    {
+        if (!ValidStatuses.Contains(request.Status)) throw new DomainValidationException("Trạng thái đơn hàng không hợp lệ.");
         if (request.Items.Select(x => x.ProductId).Distinct().Count() != request.Items.Count)
-            throw new ArgumentException("Một hàng hóa không được xuất hiện nhiều lần trong cùng đơn hàng.");
+            throw new DomainValidationException("Một hàng hóa không được xuất hiện nhiều lần trong cùng đơn hàng.");
         var now = DateTime.Now;
         if (request.OrderedAt > now.AddMinutes(1) || request.OrderedAt < now.AddYears(-10))
-            throw new ArgumentException("Ngày đặt hàng phải từ 10 năm trước đến thời điểm hiện tại.");
-        if (!request.ExpectedDeliveryAt.HasValue || request.ExpectedDeliveryAt.Value <= now)
-            throw new ArgumentException("Ngày và giờ giao dự kiến phải sau thời điểm hiện tại.");
+            throw new DomainValidationException("Ngày đặt hàng phải từ 10 năm trước đến thời điểm hiện tại.");
+        if (!request.ExpectedDeliveryAt.HasValue || (requireFutureDelivery && request.ExpectedDeliveryAt.Value <= now))
+            throw new DomainValidationException("Ngày và giờ giao dự kiến mới phải sau thời điểm hiện tại.");
         if (request.ExpectedDeliveryAt.Value <= request.OrderedAt)
-            throw new ArgumentException("Ngày giao dự kiến phải sau ngày đặt hàng.");
+            throw new DomainValidationException("Ngày giao dự kiến phải sau ngày đặt hàng.");
         if (request.DeliveredAt.HasValue && request.DeliveredAt.Value < request.OrderedAt)
-            throw new ArgumentException("Ngày giao thực tế không được trước ngày đặt hàng.");
-        var merchandiseTotal = request.Items.Sum(x => x.Quantity * x.UnitPrice * (1 - x.DiscountPercent / 100m));
+            throw new DomainValidationException("Ngày giao thực tế không được trước ngày đặt hàng.");
+        if (request.DeliveredAt.HasValue && (request.Status != "DA_GIAO" || request.DeliveredAt > now))
+            throw new DomainValidationException("Ngày giao thực tế chỉ được nhập cho đơn đã giao và không được nằm trong tương lai.");
+        // SQL rounds each computed ThanhTien to decimal(18,2), then sums it.
+        var lineTotals = request.Items.Select(x => decimal.Round(
+            x.Quantity * x.UnitPrice * (1 - x.DiscountPercent / 100m), 2, MidpointRounding.AwayFromZero)).ToArray();
+        const decimal maxAmount = 999999999999.99m;
+        if (lineTotals.Any(x => x < 0 || x > maxAmount))
+            throw new DomainValidationException("Thành tiền hàng hóa vượt miền giá trị cho phép.");
+        var merchandiseTotal = lineTotals.Sum();
         var grandTotal = merchandiseTotal - request.DiscountAmount + request.TaxAmount + request.ShippingFee;
-        if (grandTotal < 0) throw new ArgumentException("Tổng thanh toán không được âm. Vui lòng kiểm tra tiền giảm giá.");
+        if (merchandiseTotal > maxAmount || grandTotal > maxAmount)
+            throw new DomainValidationException("Tổng tiền đơn hàng vượt miền giá trị cho phép.");
+        if (grandTotal < 0) throw new DomainValidationException("Tổng tiền không được âm. Vui lòng kiểm tra tiền giảm giá.");
+    }
+
+    private async Task ValidateReferencesAsync(SaveOrderRequest request, int creatorEmployeeId, CancellationToken token)
+    {
+        if (!await dbContext.Customers.AnyAsync(x => x.Id == request.CustomerId && !x.IsDeleted && x.Status == "ACTIVE", token))
+            throw new DomainValidationException("Khách hàng không tồn tại hoặc đã ngừng hoạt động.");
+        var productIds = request.Items.Select(x => x.ProductId).Distinct().ToArray();
+        if (await dbContext.Products.CountAsync(x => productIds.Contains(x.Id) && !x.IsDeleted && x.Status == "ACTIVE", token) != productIds.Length)
+            throw new DomainValidationException("Đơn hàng có hàng hóa không tồn tại hoặc đã ngừng hoạt động.");
+        var employeeIds = new[] { creatorEmployeeId, request.DeliveryEmployeeId ?? creatorEmployeeId }.Distinct().ToArray();
+        const string sql = """
+            SELECT COUNT(*) FROM tbl_NhanVien
+            WHERE NhanVienID IN @Ids AND TrangThai = 'ACTIVE' AND IsDeleted = 0;
+            """;
+        var employeeCount = await dbContext.Database.GetDbConnection().ExecuteScalarAsync<int>(new CommandDefinition(
+            sql, new { Ids = employeeIds }, transaction: dbContext.Database.CurrentTransaction?.GetDbTransaction(), cancellationToken: token));
+        if (employeeCount != employeeIds.Length)
+            throw new DomainValidationException("Người tạo đơn hoặc người giao hàng không tồn tại hoặc đã ngừng hoạt động.");
     }
 
     private async Task DeductStockAsync(IReadOnlyCollection<SaveOrderItemRequest> items, CancellationToken cancellationToken)
@@ -295,9 +347,9 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
         foreach (var item in items)
         {
             if (!products.TryGetValue(item.ProductId, out var product))
-                throw new ArgumentException($"Hàng hóa ID {item.ProductId} không tồn tại.");
+                throw new DomainValidationException($"Hàng hóa ID {item.ProductId} không tồn tại.");
             if (product.StockQuantity < item.Quantity)
-                throw new InvalidOperationException(
+                throw new DomainConflictException(
                     $"Không thể hoàn tất giao hàng: {product.Name} chỉ còn {product.StockQuantity:N2}, cần {item.Quantity:N2}.");
         }
 
@@ -312,7 +364,7 @@ public sealed class OrderRepository(OrderDbContext dbContext) : IOrderRepository
     {
         if (currentStatus == nextStatus) return;
         if (!AllowedStatusTransitions.TryGetValue(currentStatus, out var allowed) || !allowed.Contains(nextStatus))
-            throw new ArgumentException($"Không thể chuyển trạng thái từ {StatusLabel(currentStatus)} sang {StatusLabel(nextStatus)}.");
+            throw new DomainValidationException($"Không thể chuyển trạng thái từ {StatusLabel(currentStatus)} sang {StatusLabel(nextStatus)}.");
     }
 
     private static bool RequiresDeliveryEmployee(string status) =>

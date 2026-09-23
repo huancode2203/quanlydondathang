@@ -1,4 +1,4 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { apiErrorMessage } from '../../core/models/api.model';
 import { Component, computed, inject, signal } from '@angular/core';
 import { finalize } from 'rxjs';
 import { AccountPermission, Permission, PermissionManagement, RolePermission } from '../../core/models/permission.model';
@@ -302,7 +302,5 @@ export class PermissionManagementComponent {
   private featureDescription(feature: string): string {
     return ({ ORDER: 'Xem và xử lý vòng đời đơn hàng', CUSTOMER: 'Tra cứu và cập nhật hồ sơ khách hàng', PRODUCT: 'Tra cứu hàng hóa, giá bán và tồn kho', ACCOUNT: 'Quản lý tài khoản đăng nhập', PERMISSION: 'Cấu hình quyền cho các nhóm người dùng', OTHER: 'Các chức năng khác trong hệ thống' } as Record<string, string>)[feature] ?? 'Quyền sử dụng chức năng';
   }
-  private readError(error: unknown): string {
-    return error instanceof HttpErrorResponse ? error.error?.message ?? 'Không thể xử lý yêu cầu phân quyền.' : 'Đã xảy ra lỗi. Vui lòng thử lại.';
-  }
+  private readonly readError = apiErrorMessage;
 }

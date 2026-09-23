@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Sv.Order.Data;
 using Sv.Order.DTOs;
 using Sv.Order.Entities;
+using Sv.Order.Exceptions;
 using Sv.Order.Repository.Interface;
 
 namespace Sv.Order.Repository.Implement;
@@ -104,15 +105,24 @@ public sealed class PermissionRepository(OrderDbContext dbContext) : IPermission
         int accountId, IReadOnlyCollection<int> roleIds, bool usesCustomPermissions,
         IReadOnlyCollection<int> permissionIds, CancellationToken cancellationToken)
     {
+        // Serialize permission changes before counting admins. Two concurrent demotions
+        // must not both pass the "last administrator" check.
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        await dbContext.Database.ExecuteSqlRawAsync("""
+            DECLARE @result int;
+            EXEC @result = sys.sp_getapplock @Resource = 'OrderManagement.AccountRoles',
+                @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 10000;
+            IF @result < 0 THROW 51010, N'Không thể khóa cập nhật quyền. Vui lòng thử lại.', 1;
+            """, cancellationToken);
         var account = await dbContext.Accounts.SingleOrDefaultAsync(x => x.Id == accountId && x.Status == "ACTIVE", cancellationToken);
         if (account is null) return null;
 
         var selectedRoleIds = roleIds.Distinct().Order().ToArray();
-        if (selectedRoleIds.Length == 0) throw new ArgumentException("Tài khoản phải thuộc ít nhất một nhóm quyền.");
+        if (selectedRoleIds.Length == 0) throw new DomainValidationException("Tài khoản phải thuộc ít nhất một nhóm quyền.");
 
         var targetRoles = await dbContext.Roles.Where(x => selectedRoleIds.Contains(x.Id) && x.Status == "ACTIVE").ToListAsync(cancellationToken);
         if (targetRoles.Count != selectedRoleIds.Length)
-            throw new ArgumentException("Danh sách nhóm quyền có nhóm không tồn tại hoặc đã ngừng hoạt động.");
+            throw new DomainValidationException("Danh sách nhóm quyền có nhóm không tồn tại hoặc đã ngừng hoạt động.");
 
         var adminRole = await dbContext.Roles.SingleAsync(x => x.Code == AdminRoleCode && x.Status == "ACTIVE", cancellationToken);
         var isSystemAdmin = selectedRoleIds.Contains(adminRole.Id);
@@ -123,7 +133,7 @@ public sealed class PermissionRepository(OrderDbContext dbContext) : IPermission
                 .Join(dbContext.Accounts.Where(x => x.Status == "ACTIVE"), x => x.AccountId, x => x.Id, (_, item) => item.Id)
                 .Distinct().CountAsync(cancellationToken);
             if (activeAdminCount <= 1)
-                throw new InvalidOperationException("Phải giữ lại ít nhất một tài khoản thuộc nhóm Quản trị viên.");
+                throw new DomainConflictException("Phải giữ lại ít nhất một tài khoản thuộc nhóm Quản trị viên.");
         }
 
         var activePermissions = await dbContext.Permissions.Where(x => x.Status == "ACTIVE").ToListAsync(cancellationToken);
@@ -133,7 +143,6 @@ public sealed class PermissionRepository(OrderDbContext dbContext) : IPermission
         else selectedPermissionIds = await dbContext.RolePermissions.Where(x => selectedRoleIds.Contains(x.RoleId))
             .Select(x => x.PermissionId).Distinct().OrderBy(x => x).ToArrayAsync(cancellationToken);
 
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
         var currentRoles = await dbContext.AccountRoles.Where(x => x.AccountId == accountId).ToListAsync(cancellationToken);
         var roleIdSet = selectedRoleIds.ToHashSet();
         var currentRoleIdSet = currentRoles.Select(x => x.RoleId).ToHashSet();
@@ -153,7 +162,6 @@ public sealed class PermissionRepository(OrderDbContext dbContext) : IPermission
             AccountId = accountId, PermissionId = permissionId
         }));
 
-        account.RoleId = isSystemAdmin ? adminRole.Id : selectedRoleIds[0];
         account.UsesCustomPermissions = !isSystemAdmin && usesCustomPermissions;
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -175,7 +183,7 @@ public sealed class PermissionRepository(OrderDbContext dbContext) : IPermission
     {
         var activeIds = activePermissions.Select(x => x.Id).ToHashSet();
         if (requestedIds.Any(x => !activeIds.Contains(x)))
-            throw new ArgumentException("Danh sách quyền có quyền không tồn tại hoặc đã ngừng hoạt động.");
+            throw new DomainValidationException("Danh sách quyền có quyền không tồn tại hoặc đã ngừng hoạt động.");
 
         var selected = requestedIds.Distinct().ToHashSet();
         foreach (var feature in activePermissions.GroupBy(x => x.Feature))

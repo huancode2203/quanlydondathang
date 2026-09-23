@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { HttpErrorResponse } from '@angular/common/http';
+import { apiErrorMessage } from '../../core/models/api.model';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { AbstractControl, ReactiveFormsModule, UntypedFormArray, UntypedFormBuilder, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
@@ -41,6 +41,7 @@ export class OrderManagementComponent implements OnInit {
   readonly customerSaving = signal(false);
   readonly creatorName = signal('');
   readonly originalStatus = signal('CHO_XAC_NHAN');
+  private originalExpectedDeliveryAt: string | undefined;
 
   readonly statuses = [
     { value: 'CHO_XAC_NHAN', label: 'Chờ xác nhận' },
@@ -52,10 +53,10 @@ export class OrderManagementComponent implements OnInit {
     { value: 'DA_HUY', label: 'Đã hủy' },
   ];
 
-  readonly filterForm = this.fb.group({
-    keyword: [''], status: [''], fromDate: [''], toDate: [''], creatorEmployeeId: [null],
-    deliveryEmployeeId: [null], minTotal: [null], maxTotal: [null], sort: [''],
-  });
+    readonly filterForm = this.fb.group({
+      keyword: [''], status: [''], fromDate: [''], toDate: [''], creatorEmployeeId: [null],
+      deliveryEmployeeId: [null], minTotal: [null], maxTotal: [null], sort: [''],
+    });
   readonly orderForm = this.fb.group({
     code: ['', [Validators.required, Validators.maxLength(30)]],
     customerId: [null, Validators.required],
@@ -162,6 +163,7 @@ export class OrderManagementComponent implements OnInit {
   openCreate(): void {
     this.orderForm.enable({ emitEvent: false });
     this.editingId.set(null);
+    this.originalExpectedDeliveryAt = undefined;
     this.originalStatus.set('CHO_XAC_NHAN');
     this.creatorName.set(this.auth.user()?.fullName ?? '');
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -256,7 +258,9 @@ export class OrderManagementComponent implements OnInit {
     if (orderedAt > now || orderedAt < new Date(new Date().setFullYear(now.getFullYear() - 10))) {
       this.showToast('Ngày đặt hàng phải từ 10 năm trước đến thời điểm hiện tại.'); return;
     }
-    if (expectedAt <= now || expectedAt <= orderedAt) {
+    const unchangedDelivery = this.editingId() !== null &&
+      value.expectedDeliveryAt === this.toLocalInput(this.originalExpectedDeliveryAt);
+    if ((!unchangedDelivery && expectedAt <= now) || expectedAt <= orderedAt) {
       this.showToast('Ngày và giờ giao dự kiến phải sau hiện tại và sau ngày đặt hàng.'); return;
     }
     if (this.grandTotal() < 0) {
@@ -296,6 +300,22 @@ export class OrderManagementComponent implements OnInit {
   statusLabel(status: string): string { return this.statuses.find(x => x.value === status)?.label ?? status; }
   statusClass(status: string): string { return status.toLowerCase().replaceAll('_', '-'); }
   isTerminalStatus(status: string): boolean { return status === 'DA_GIAO' || status === 'DA_HUY'; }
+  canEditOrder(order: OrderListItem): boolean {
+    if (this.isTerminalStatus(order.status)) return false;
+    if (this.auth.hasPermission('ORDER_UPDATE')) return true;
+    if (order.status === 'DANG_CHUAN_BI')
+      return this.auth.hasPermission('ORDER_APPROVE') || this.auth.hasPermission('ORDER_DELIVERY');
+    return ['CHO_XAC_NHAN', 'DA_XAC_NHAN'].includes(order.status)
+      ? this.auth.hasPermission('ORDER_APPROVE') : this.auth.hasPermission('ORDER_DELIVERY');
+  }
+  private canChangeStatus(current: string, next: string): boolean {
+    if (current === next) return true;
+    if (next === 'DA_HUY')
+      return ['CHO_GIAO_HANG', 'DANG_GIAO'].includes(current)
+        ? this.auth.hasPermission('ORDER_DELIVERY') : this.auth.hasPermission('ORDER_APPROVE');
+    return ['DA_XAC_NHAN', 'DANG_CHUAN_BI'].includes(next)
+      ? this.auth.hasPermission('ORDER_APPROVE') : this.auth.hasPermission('ORDER_DELIVERY');
+  }
   orderLocked(): boolean { return this.editingId() !== null && this.isTerminalStatus(this.originalStatus()); }
   formStatuses(): typeof this.statuses {
     if (this.editingId() === null) return this.statuses.filter(x => x.value === 'CHO_XAC_NHAN');
@@ -310,7 +330,7 @@ export class OrderManagementComponent implements OnInit {
     };
     const current = this.originalStatus();
     const allowed = new Set([current, ...(transitions[current] ?? [])]);
-    return this.statuses.filter(x => allowed.has(x.value));
+    return this.statuses.filter(x => allowed.has(x.value) && this.canChangeStatus(current, x.value));
   }
   statusStockHint(status: string): string {
     if (status === 'DA_GIAO') return 'Khi lưu, hệ thống kiểm tra đủ hàng rồi trừ tồn thực tế.';
@@ -319,7 +339,11 @@ export class OrderManagementComponent implements OnInit {
   }
   minOrderDate(): string { const date = new Date(); date.setFullYear(date.getFullYear() - 10); return this.toLocalInput(date.toISOString()); }
   maxOrderDate(): string { return this.toLocalInput(new Date().toISOString()); }
-  minDeliveryDate(): string { return this.toLocalInput(new Date(Date.now() + 60000).toISOString()); }
+  minDeliveryDate(): string {
+    const nextMinute = this.toLocalInput(new Date(Date.now() + 60000).toISOString());
+    const original = this.toLocalInput(this.originalExpectedDeliveryAt);
+    return original && original < nextMinute ? original : nextMinute;
+  }
 
   openCustomerForm(): void {
     this.customerForm.reset({ code: `KH${String(Date.now()).slice(-5)}` });
@@ -347,6 +371,7 @@ export class OrderManagementComponent implements OnInit {
     this.orderForm.enable({ emitEvent: false });
     this.editingId.set(order.id);
     this.originalStatus.set(order.status);
+    this.originalExpectedDeliveryAt = order.expectedDeliveryAt;
     this.creatorName.set(order.creatorName);
     this.orderForm.reset({
       code: order.code,
@@ -377,7 +402,9 @@ export class OrderManagementComponent implements OnInit {
       // datetime-local represents business time at the SQL Server location.
       // Keep it timezone-free so the API does not shift the delivery hour to UTC.
       orderedAt: value.orderedAt,
-      expectedDeliveryAt: this.toApiDateTime(value.expectedDeliveryAt),
+      // Preserve seconds when an existing datetime-local value has not changed.
+      expectedDeliveryAt: this.editingId() !== null && value.expectedDeliveryAt === this.toLocalInput(this.originalExpectedDeliveryAt)
+        ? this.originalExpectedDeliveryAt : this.toApiDateTime(value.expectedDeliveryAt),
       deliveredAt: this.toApiDateTime(value.deliveredAt),
       deliveryAddress: value.deliveryAddress.trim(),
       status: value.status,
@@ -397,6 +424,6 @@ export class OrderManagementComponent implements OnInit {
 
   private toApiDateTime(value?: string): string | undefined { return value || undefined; }
   private toLocalInput(value?: string): string { if (!value) return ''; const date = new Date(value); const offset = date.getTimezoneOffset(); return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16); }
-  private readError(error: unknown): string { return error instanceof HttpErrorResponse ? error.error?.message || 'Không thể kết nối đến API.' : 'Đã xảy ra lỗi không xác định.'; }
+  private readonly readError = apiErrorMessage;
   private showToast(message: string): void { this.toastMessage.set(message); window.setTimeout(() => this.toastMessage.set(''), 3200); }
 }

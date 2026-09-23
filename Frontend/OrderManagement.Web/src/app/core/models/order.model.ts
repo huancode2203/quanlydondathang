@@ -1,3 +1,5 @@
+import { PagedFilter } from './api.model';
+
 export interface LookupItem { id: number; code: string; name: string; extra?: string; price?: number; stockQuantity?: number; }
 export interface OrderLookups { customers: LookupItem[]; products: LookupItem[]; employees: LookupItem[]; }
 export interface OrderListItem {
@@ -20,8 +22,8 @@ export interface SaveOrderRequest {
   discountAmount: number; taxAmount: number; shippingFee: number; status: string; note?: string; items: SaveOrderItem[];
 }
 export interface PagedResult<T> { items: T[]; total: number; page: number; pageSize: number; totalPages: number; }
-export interface OrderSearchParams {
-  keyword?: string; status?: string; fromDate?: string; toDate?: string;
+export interface OrderSearchParams extends PagedFilter {
+  status?: string; fromDate?: string; toDate?: string;
   creatorEmployeeId?: number; deliveryEmployeeId?: number; minTotal?: number; maxTotal?: number;
-  sort?: string; page: number; pageSize: number;
+  sort?: string;
 }

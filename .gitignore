@@ -7,3 +7,6 @@
 *.user
 *.suo
 .DS_Store
+artifacts/
+Deployment/local/
+*.bak

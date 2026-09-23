@@ -3,7 +3,7 @@
 ## 1. Luồng tổng thể
 
 ```text
-Angular → API Gateway (5000) → Controller (5001)
+Angular → API Gateway (IIS 8080) → Controller (IIS 5081)
         → Repository Interface → Repository Implementation
         → EF Core hoặc Dapper → SQL Server
 ```
@@ -23,7 +23,7 @@ Angular → API Gateway (5000) → Controller (5001)
 | `Frontend/` | Ứng dụng Angular cho đăng nhập, đơn hàng, khách hàng và hàng hóa. |
 | `Database/` | Script tạo database và script nâng cấp. |
 | `docs/` | Tài liệu kỹ thuật. |
-| `.vscode/tasks.json` | Task `Run full project` chạy Order API, Gateway và Angular. |
+| `.vscode/tasks.json` | Task `Publish IIS` để đóng gói; có task `Run full project` cho phát triển. |
 | `.gitignore` | Loại `node_modules`, `bin`, `obj`, `dist` và file tạm khỏi Git. |
 | `global.json` | Cố định .NET SDK dùng trên máy hiện tại. |
 | `README.md` | Hướng dẫn chạy và danh sách API. |
@@ -35,9 +35,10 @@ Angular → API Gateway (5000) → Controller (5001)
 | File | Công dụng |
 |---|---|
 | `APIGateway.csproj` | Project Gateway và package YARP Reverse Proxy. |
-| `Program.cs` | Khởi tạo YARP, CORS và health check. |
-| `appsettings.json` | Chuyển `/api/{**catch-all}` đến `http://localhost:5001`. |
-| `Properties/launchSettings.json` | Chạy Gateway tại cổng `5000`. |
+| `Program.cs` | Khởi tạo YARP, CORS, giới hạn API POST, lỗi JSON chung và phục vụ Angular. |
+| `appsettings.json` | Chuyển `/api/{**catch-all}` đến Order API; cấu hình IIS ghi đè địa chỉ đích. |
+| `web.config` | Khởi chạy Gateway qua IIS ASP.NET Core Module. |
+| `Properties/launchSettings.json` | Cấu hình chạy Gateway local. |
 
 Gateway không xử lý nghiệp vụ hoặc truy cập database.
 
@@ -46,14 +47,18 @@ Gateway không xử lý nghiệp vụ hoặc truy cập database.
 | File | Công dụng |
 |---|---|
 | `Order.Api.csproj` | Project API, tham chiếu `sv.Order` và JWT Bearer. |
-| `Program.cs` | Đăng ký Controller, DbContext, Repository, JWT, CORS và DI. |
+| `Program.cs` | Đăng ký JSON contract nghiêm ngặt, giới hạn request, DbContext, Repository, JWT và DI. |
 | `appsettings.json` | Chuỗi kết nối SQL Server và cấu hình ký JWT local. |
 | `Controllers/AuthController.cs` | Đăng nhập và phát JWT chứa nhân viên/quyền. |
 | `Controllers/OrdersController.cs` | CRUD, tìm kiếm đơn, kiểm tra `ORDER_*`, lấy người tạo từ JWT. |
 | `Controllers/CustomersController.cs` | CRUD khách hàng, kiểm tra quyền khách hàng. |
 | `Controllers/ProductsController.cs` | CRUD hàng hóa/tồn kho, kiểm tra quyền hàng hóa. |
 | `Controllers/PermissionsController.cs` | Đọc/cập nhật quyền theo nhóm và từng tài khoản, chỉ cho phép `PERMISSION_MANAGE`. |
-| `Properties/launchSettings.json` | Chạy Order API tại cổng `5001`. |
+| `Infrastructure/ApiRequestMiddleware.cs` | Từ chối API không dùng POST, query string và body quá giới hạn. |
+| `Infrastructure/ApiExceptionMiddleware.cs` | Chuẩn hóa ngoại lệ nghiệp vụ, SQL và bất ngờ thành HTTP envelope. |
+| `Infrastructure/ApiResponse.cs` | Định nghĩa `{status,value,message,errors,traceId}` cho phản hồi. |
+| `web.config` | Khởi chạy API dưới IIS. |
+| `Properties/launchSettings.json` | Cấu hình chạy API local. |
 
 ### `Backend/Common/sv.Order`
 
@@ -74,8 +79,9 @@ Gateway không xử lý nghiệp vụ hoặc truy cập database.
 | `RoleEntity.cs` | `tbl_NhomQuyen` |
 | `PermissionEntity.cs` | `tbl_Quyen` |
 | `RolePermissionEntity.cs` | `tbl_CapQuyen` |
-| `AccountEntity.cs` | `tbl_TaiKhoan`, gồm nhóm và chế độ dùng quyền riêng |
+| `AccountEntity.cs` | `tbl_TaiKhoan`; các nhóm được nối qua `AccountRoleEntity` |
 | `AccountPermissionEntity.cs` | `tbl_CapQuyenTaiKhoan` |
+| `AccountRoleEntity.cs` | `tbl_TaiKhoanNhomQuyen`, quan hệ tài khoản/nhóm nhiều-nhiều |
 
 #### `DTOs`
 
@@ -85,6 +91,8 @@ Gateway không xử lý nghiệp vụ hoặc truy cập database.
 | `AuthDtos.cs` | Request đăng nhập, user xác thực và response JWT. |
 | `MasterDataDtos.cs` | Request/response khách hàng và hàng hóa. |
 | `PermissionDtos.cs` | Danh sách tài khoản/nhóm/quyền và request cập nhật quyền. |
+| `RequestDtos.cs` | Lớp tìm kiếm/phân trang cơ sở, body ID và body rỗng. |
+| `DecimalScaleAttribute.cs` | Chặn tiền/số lượng có hơn hai chữ số thập phân. |
 
 DTO là dữ liệu trao đổi giữa API và frontend, tách khỏi Entity để client không sửa cột hệ thống.
 
@@ -134,7 +142,8 @@ Interface không chứa SQL hoặc phần thân hàm.
 
 - `models/`: kiểu TypeScript cho đăng nhập, đơn, khách hàng và hàng hóa.
 - `services/auth.service.ts`: đăng nhập, lưu phiên, kiểm tra quyền và chọn màn hình mặc định được phép truy cập.
-- `services/order-api.service.ts`: API đơn và query string bộ lọc.
+- `services/api-client.service.ts`: Gửi POST chung, xác nhận envelope và chuẩn hóa lỗi.
+- `services/order-api.service.ts`: Gọi API đơn với bộ lọc trong JSON body.
 - `services/master-data-api.service.ts`: CRUD khách hàng/hàng hóa.
 - `services/permission-api.service.ts`: tải và lưu cấu hình quyền theo nhóm.
 - `interceptors/auth.interceptor.ts`: gắn JWT và xử lý HTTP 401.
@@ -167,14 +176,18 @@ Mỗi feature chỉ giữ `.ts` xử lý logic và `.html` lắp các shared com
 | `003_EnsureAdminFullPermissions.sql` | Bổ sung mọi quyền còn thiếu cho Admin, chạy lại an toàn. |
 | `004_AddAccountPermissions.sql` | Thêm cờ quyền riêng và bảng cấp quyền trực tiếp cho tài khoản. |
 | `005_AddOrderStockWorkflow.sql` | Thêm cờ `DaTruKho` để một đơn đã giao chỉ trừ tồn thực tế đúng một lần. |
+| `006_AddMultipleAccountRoles.sql` | Chuyển quan hệ tài khoản/nhóm sang bảng nhiều-nhiều. |
+| `007_NormalizeDomains.sql` | Kiểm tra trước, thêm CHECK constraints, đặt miền ngày và bỏ cột/function không dùng. |
+| `Initialize.sql` | Tạo database mới bằng baseline và áp dụng toàn bộ migration. |
 
-Trigger `trg_CapNhatTongTienDonHang` tính lại `TongTienHang`. `ThanhTien` và `TongThanhToan` là computed column nên API không ghi trực tiếp.
+`QuanLyDonDatHangDB.sql` là baseline schema lịch sử; không chạy riêng với ứng dụng hiện tại. Dùng `Initialize.sql` khi tạo database mới. Trigger `trg_CapNhatTongTienDonHang` tính lại `TongTienHang`; `ThanhTien` và `TongThanhToan` là computed column nên API không ghi trực tiếp.
 
 ## 6. Quy tắc nghiệp vụ
 
 - Người tạo đơn lấy từ `employee_id` trong JWT; frontend không thể gán người khác.
 - Ngày đặt từ 10 năm trước đến hiện tại.
-- Ngày/giờ giao dự kiến bắt buộc, sau hiện tại và sau ngày đặt.
+- Ngày/giờ giao dự kiến bắt buộc, sau hiện tại lúc tạo hoặc đổi lịch, và sau ngày đặt; cập nhật trạng thái được phép giữ lịch giao cũ đã quá hạn.
+- Quyền `ORDER_APPROVE` và `ORDER_DELIVERY` được kiểm tra ở API theo bước chuyển trạng thái; chỉ `ORDER_UPDATE` mới cho sửa nội dung đơn.
 - Một hàng hóa chỉ xuất hiện một lần trong đơn.
 - Số lượng đặt được lớn hơn tồn kho nhưng giao diện cảnh báo.
 - Đơn từ Chờ xác nhận đến Đang giao giữ số lượng trong tồn khả dụng nhưng chưa đổi tồn thực tế.

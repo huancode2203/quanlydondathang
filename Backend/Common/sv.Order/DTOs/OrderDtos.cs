@@ -1,21 +1,35 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Sv.Order.DTOs;
 
-public sealed class OrderSearchRequest
+public sealed class OrderSearchRequest : PagedFilterRequest, IValidatableObject
 {
-    public string? Keyword { get; init; }
+    [RegularExpression("^(CHO_XAC_NHAN|DA_XAC_NHAN|DANG_CHUAN_BI|CHO_GIAO_HANG|DANG_GIAO|DA_GIAO|DA_HUY)$",
+        ErrorMessage = "Trạng thái đơn hàng không hợp lệ.")]
     public string? Status { get; init; }
     public DateTime? FromDate { get; init; }
     public DateTime? ToDate { get; init; }
-    public int? CustomerId { get; init; }
-    public int? CreatorEmployeeId { get; init; }
-    public int? DeliveryEmployeeId { get; init; }
+    [Range(1, int.MaxValue)] public int? CustomerId { get; init; }
+    [Range(1, int.MaxValue)] public int? CreatorEmployeeId { get; init; }
+    [Range(1, int.MaxValue)] public int? DeliveryEmployeeId { get; init; }
+    [DecimalScale(2), Range(typeof(decimal), "0", "999999999999.99")]
     public decimal? MinTotal { get; init; }
+    [DecimalScale(2), Range(typeof(decimal), "0", "999999999999.99")]
     public decimal? MaxTotal { get; init; }
+    [RegularExpression("^(orderedDateDesc|deliveryDateAsc|deliveryDateDesc|totalAsc|totalDesc)$",
+        ErrorMessage = "Kiểu sắp xếp không hợp lệ.")]
     public string? Sort { get; init; }
-    [Range(1, int.MaxValue)] public int Page { get; init; } = 1;
-    [Range(1, 100)] public int PageSize { get; init; } = 10;
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (FromDate?.Date > ToDate?.Date)
+            yield return new("Từ ngày không được lớn hơn đến ngày.", [nameof(FromDate), nameof(ToDate)]);
+        if (ToDate?.Date == DateTime.MaxValue.Date)
+            yield return new("Đến ngày phải nhỏ hơn 31/12/9999.", [nameof(ToDate)]);
+        if (MinTotal > MaxTotal)
+            yield return new("Tổng tiền nhỏ nhất không được lớn hơn tổng tiền lớn nhất.", [nameof(MinTotal), nameof(MaxTotal)]);
+    }
 }
 
 public class OrderListItemDto
@@ -63,29 +77,45 @@ public sealed class OrderItemDto
     public string? Note { get; init; }
 }
 
-public sealed class SaveOrderRequest
+public class SaveOrderRequest : IValidatableObject
 {
     [Required, StringLength(30)] public string Code { get; init; } = string.Empty;
     [Range(1, int.MaxValue)] public int CustomerId { get; init; }
-    public int? DeliveryEmployeeId { get; init; }
-    public DateTime OrderedAt { get; init; }
+    [Range(1, int.MaxValue)] public int? DeliveryEmployeeId { get; init; }
+    [JsonRequired] public DateTime OrderedAt { get; init; }
     [Required] public DateTime? ExpectedDeliveryAt { get; init; }
     public DateTime? DeliveredAt { get; init; }
     [Required, StringLength(500)] public string DeliveryAddress { get; init; } = string.Empty;
-    [Range(0, double.MaxValue)] public decimal DiscountAmount { get; init; }
-    [Range(0, double.MaxValue)] public decimal TaxAmount { get; init; }
-    [Range(0, double.MaxValue)] public decimal ShippingFee { get; init; }
-    [Required, StringLength(30)] public string Status { get; init; } = "CHO_XAC_NHAN";
+    [DecimalScale(2), Range(typeof(decimal), "0", "999999999999.99")]
+    public decimal DiscountAmount { get; init; }
+    [DecimalScale(2), Range(typeof(decimal), "0", "999999999999.99")]
+    public decimal TaxAmount { get; init; }
+    [DecimalScale(2), Range(typeof(decimal), "0", "999999999999.99")]
+    public decimal ShippingFee { get; init; }
+    [Required, RegularExpression("^(CHO_XAC_NHAN|DA_XAC_NHAN|DANG_CHUAN_BI|CHO_GIAO_HANG|DANG_GIAO|DA_GIAO|DA_HUY)$",
+        ErrorMessage = "Trạng thái đơn hàng không hợp lệ.")]
+    public string Status { get; init; } = "CHO_XAC_NHAN";
     [StringLength(1000)] public string? Note { get; init; }
-    [Required, MinLength(1)] public List<SaveOrderItemRequest> Items { get; init; } = [];
+    [Required, MinLength(1), MaxLength(200)] public List<SaveOrderItemRequest> Items { get; init; } = [];
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (Items is not null && Items.Any(item => item is null))
+            yield return new("Chi tiết hàng hóa không được chứa dòng trống.", [nameof(Items)]);
+    }
+}
+
+public sealed class UpdateOrderRequest : SaveOrderRequest
+{
+    [Range(1L, long.MaxValue)] public long Id { get; init; }
 }
 
 public sealed class SaveOrderItemRequest
 {
     [Range(1, int.MaxValue)] public int ProductId { get; init; }
-    [Range(typeof(decimal), "0.01", "9999999999999999")] public decimal Quantity { get; init; }
-    [Range(typeof(decimal), "0", "9999999999999999")] public decimal UnitPrice { get; init; }
-    [Range(typeof(decimal), "0", "100")] public decimal DiscountPercent { get; init; }
+    [DecimalScale(2), Range(typeof(decimal), "0.01", "999999999.99")] public decimal Quantity { get; init; }
+    [JsonRequired, DecimalScale(2), Range(typeof(decimal), "0", "999999999999.99")] public decimal UnitPrice { get; init; }
+    [DecimalScale(2), Range(typeof(decimal), "0", "100")] public decimal DiscountPercent { get; init; }
     [StringLength(500)] public string? Note { get; init; }
 }
 

@@ -17,7 +17,3 @@ BEGIN
             CONSTRAINT DF_DonDatHang_DaTruKho DEFAULT 0;
 END
 GO
-
--- Dữ liệu lịch sử được giữ nguyên vì không thể xác định tồn kho đã được
--- điều chỉnh thủ công hay chưa. Các đơn chuyển sang DA_GIAO từ phiên bản
--- này trở đi sẽ được API đánh dấu DaTruKho = 1 sau khi trừ kho thành công.

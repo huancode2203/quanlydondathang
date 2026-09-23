@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Sv.Order.DTOs;
 
@@ -39,14 +40,32 @@ public sealed class AccountPermissionDto
     public IReadOnlyList<int> PermissionIds { get; set; } = [];
 }
 
-public sealed class UpdateRolePermissionsRequest
+public sealed class UpdateRolePermissionsRequest : IValidatableObject
 {
-    [Required] public List<int> PermissionIds { get; init; } = [];
+    [Range(1, int.MaxValue)] public int Id { get; init; }
+    [JsonRequired, Required, MaxLength(1000)] public List<int> PermissionIds { get; init; } = [];
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext) =>
+        PermissionRequestValidation.ValidateIds(PermissionIds, nameof(PermissionIds));
 }
 
-public sealed class UpdateAccountPermissionsRequest
+public sealed class UpdateAccountPermissionsRequest : IValidatableObject
 {
-    [Required, MinLength(1)] public List<int> RoleIds { get; init; } = [];
-    public bool UsesCustomPermissions { get; init; }
-    [Required] public List<int> PermissionIds { get; init; } = [];
+    [Range(1, int.MaxValue)] public int Id { get; init; }
+    [Required, MinLength(1), MaxLength(100)] public List<int> RoleIds { get; init; } = [];
+    [JsonRequired] public bool UsesCustomPermissions { get; init; }
+    [JsonRequired, Required, MaxLength(1000)] public List<int> PermissionIds { get; init; } = [];
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext) =>
+        PermissionRequestValidation.ValidateIds(RoleIds, nameof(RoleIds))
+            .Concat(PermissionRequestValidation.ValidateIds(PermissionIds, nameof(PermissionIds)));
+}
+
+internal static class PermissionRequestValidation
+{
+    public static IEnumerable<ValidationResult> ValidateIds(List<int>? ids, string memberName)
+    {
+        if (ids is not null && (ids.Any(id => id <= 0) || ids.Distinct().Count() != ids.Count))
+            yield return new("Danh sách mã định danh phải gồm các số nguyên dương và không trùng lặp.", [memberName]);
+    }
 }

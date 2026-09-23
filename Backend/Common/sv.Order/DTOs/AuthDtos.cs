@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Sv.Order.DTOs;
 
@@ -15,7 +16,7 @@ public sealed class AuthUserDto
     public string Username { get; init; } = string.Empty;
     public string FullName { get; init; } = string.Empty;
     public string RoleName { get; init; } = string.Empty;
-    public string PasswordHash { get; init; } = string.Empty;
+    [JsonIgnore] public string PasswordHash { get; init; } = string.Empty;
     public IReadOnlyList<string> Permissions { get; set; } = [];
 }
 

@@ -1,22 +1,22 @@
-import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { AccountPermission, PermissionManagement, RolePermission } from '../models/permission.model';
+import { ApiClient } from './api-client.service';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionApiService {
-  private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5000/api/permissions';
+  private readonly api = inject(ApiClient);
 
   getPermissions() {
-    return this.http.get<PermissionManagement>(this.apiUrl);
+    return this.api.post<PermissionManagement>('permissions/search');
   }
 
   updateRole(roleId: number, permissionIds: number[]) {
-    return this.http.put<RolePermission>(`${this.apiUrl}/roles/${roleId}`, { permissionIds });
+    return this.api.post<RolePermission>('permissions/roles/update', { id: roleId, permissionIds });
   }
 
   updateAccount(accountId: number, roleIds: number[], usesCustomPermissions: boolean, permissionIds: number[]) {
-    return this.http.put<AccountPermission>(`${this.apiUrl}/accounts/${accountId}`, {
+    return this.api.post<AccountPermission>('permissions/accounts/update', {
+      id: accountId,
       roleIds,
       usesCustomPermissions,
       permissionIds,

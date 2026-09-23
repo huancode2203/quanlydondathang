@@ -31,14 +31,17 @@ BEGIN
 END
 GO
 
-INSERT INTO dbo.tbl_TaiKhoanNhomQuyen (TaiKhoanID, NhomQuyenID)
-SELECT tk.TaiKhoanID, tk.NhomQuyenID
-FROM dbo.tbl_TaiKhoan tk
-WHERE NOT EXISTS (
-    SELECT 1 FROM dbo.tbl_TaiKhoanNhomQuyen tknq
-    WHERE tknq.TaiKhoanID = tk.TaiKhoanID
-      AND tknq.NhomQuyenID = tk.NhomQuyenID
-);
+-- Migration 007 removes the legacy column; re-running 006 stays safe.
+IF COL_LENGTH('dbo.tbl_TaiKhoan', 'NhomQuyenID') IS NOT NULL
+    EXEC sys.sp_executesql N'
+        INSERT INTO dbo.tbl_TaiKhoanNhomQuyen (TaiKhoanID, NhomQuyenID)
+        SELECT tk.TaiKhoanID, tk.NhomQuyenID
+        FROM dbo.tbl_TaiKhoan tk
+        WHERE NOT EXISTS (
+            SELECT 1 FROM dbo.tbl_TaiKhoanNhomQuyen tknq
+            WHERE tknq.TaiKhoanID = tk.TaiKhoanID
+              AND tknq.NhomQuyenID = tk.NhomQuyenID
+        );';
 GO
 
 -- Nếu một nhóm có quyền thao tác thì luôn bổ sung quyền VIEW của cùng phân hệ.

@@ -1,4 +1,4 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { apiErrorMessage } from '../../core/models/api.model';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
@@ -19,5 +19,5 @@ export class CustomerManagementComponent {
   openEdit(x:Customer){this.editingId.set(x.id);this.form.reset({code:x.code,name:x.name,phone:x.phone??'',email:x.email??'',address:x.address??'',taxCode:x.taxCode??'',note:x.note??''});this.dialogOpen.set(true)}
   save(){if(this.form.invalid){this.form.markAllAsTouched();return}const value=this.form.getRawValue() as SaveCustomer;const id=this.editingId();const op=id?this.api.updateCustomer(id,value):this.api.createCustomer(value);this.saving.set(true);op.pipe(finalize(()=>this.saving.set(false))).subscribe({next:()=>{this.dialogOpen.set(false);this.load()},error:e=>this.error.set(this.readError(e))})}
   remove(x:Customer){if(confirm(`Xóa khách hàng ${x.code}?`))this.api.deleteCustomer(x.id).subscribe({next:()=>this.load(),error:e=>this.error.set(this.readError(e))})}
-  private readError(e:unknown){return e instanceof HttpErrorResponse?e.error?.message??'Không thể xử lý yêu cầu.':'Đã xảy ra lỗi.'}
+  private readonly readError = apiErrorMessage;
 }

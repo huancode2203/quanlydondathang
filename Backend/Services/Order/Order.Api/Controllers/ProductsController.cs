@@ -1,44 +1,31 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Order.Api.Infrastructure;
 using Sv.Order.DTOs;
 using Sv.Order.Repository.Interface;
 
 namespace Order.Api.Controllers;
 
-[ApiController, Authorize]
 [Route("api/products")]
-public sealed class ProductsController(IMasterDataRepository repository) : ControllerBase
+public sealed class ProductsController(IMasterDataRepository repository) : ApiControllerBase
 {
-    [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<ProductDto>>> GetAll([FromQuery] string? keyword, CancellationToken token)
+    [HttpPost("search"), RequirePermission("PRODUCT_VIEW")]
+    public async Task<IActionResult> Search(SearchRequest request, CancellationToken token) =>
+        Success(await repository.GetProductsAsync(request.Keyword, token));
+
+    [HttpPost("create"), RequirePermission("PRODUCT_MANAGE")]
+    public async Task<IActionResult> Create(SaveProductRequest request, CancellationToken token) =>
+        Success(await repository.CreateProductAsync(request, token), "Đã tạo hàng hóa.", 201);
+
+    [HttpPost("update"), RequirePermission("PRODUCT_MANAGE")]
+    public async Task<IActionResult> Update(UpdateProductRequest request, CancellationToken token)
     {
-        if (!HasPermission("PRODUCT_VIEW")) return PermissionDenied();
-        return Ok(await repository.GetProductsAsync(keyword, token));
+        var value = await repository.UpdateProductAsync(request.Id, request, token);
+        return value is null ? Missing("Không tìm thấy hàng hóa.") : Success(value, "Đã cập nhật hàng hóa.");
     }
 
-    [HttpPost]
-    public async Task<ActionResult<ProductDto>> Create(SaveProductRequest request, CancellationToken token)
-    {
-        if (!HasPermission("PRODUCT_MANAGE")) return PermissionDenied();
-        try { var value = await repository.CreateProductAsync(request, token); return Created($"api/products/{value.Id}", value); }
-        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
-    }
-
-    [HttpPut("{id:int}")]
-    public async Task<ActionResult<ProductDto>> Update(int id, SaveProductRequest request, CancellationToken token)
-    {
-        if (!HasPermission("PRODUCT_MANAGE")) return PermissionDenied();
-        try { var value = await repository.UpdateProductAsync(id, request, token); return value is null ? NotFound() : Ok(value); }
-        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
-    }
-
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken token)
-    {
-        if (!HasPermission("PRODUCT_MANAGE")) return PermissionDenied();
-        return await repository.DeleteProductAsync(id, token) ? NoContent() : NotFound();
-    }
-
-    private bool HasPermission(string code) => User.HasClaim("permission", code);
-    private ObjectResult PermissionDenied() => StatusCode(403, new { message = "Tài khoản không có quyền thực hiện chức năng này." });
+    [HttpPost("delete"), RequirePermission("PRODUCT_MANAGE")]
+    public async Task<IActionResult> Delete(IdRequest request, CancellationToken token) =>
+        await repository.DeleteProductAsync(request.Id, token)
+            ? Success<object?>(null, "Đã xóa hàng hóa.")
+            : Missing("Không tìm thấy hàng hóa.");
 }

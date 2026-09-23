@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Sv.Order.DTOs;
 
@@ -14,7 +15,7 @@ public sealed class CustomerDto
     public string? Note { get; init; }
 }
 
-public sealed class SaveCustomerRequest
+public class SaveCustomerRequest
 {
     [Required, StringLength(20)] public string Code { get; init; } = string.Empty;
     [Required, StringLength(200)] public string Name { get; init; } = string.Empty;
@@ -23,6 +24,11 @@ public sealed class SaveCustomerRequest
     [StringLength(500)] public string? Address { get; init; }
     [StringLength(50)] public string? TaxCode { get; init; }
     [StringLength(1000)] public string? Note { get; init; }
+}
+
+public sealed class UpdateCustomerRequest : SaveCustomerRequest
+{
+    [Range(1, int.MaxValue)] public int Id { get; init; }
 }
 
 public sealed class ProductDto
@@ -38,12 +44,19 @@ public sealed class ProductDto
     public string? Description { get; init; }
 }
 
-public sealed class SaveProductRequest
+public class SaveProductRequest
 {
     [Required, StringLength(30)] public string Code { get; init; } = string.Empty;
     [Required, StringLength(255)] public string Name { get; init; } = string.Empty;
     [Required, StringLength(50)] public string Unit { get; init; } = string.Empty;
-    [Range(typeof(decimal), "0", "9999999999999999")] public decimal Price { get; init; }
-    [Range(typeof(decimal), "0", "9999999999999999")] public decimal StockQuantity { get; init; }
+    [JsonRequired, DecimalScale(2), Range(typeof(decimal), "0", "999999999999.99")]
+    public decimal Price { get; init; }
+    [JsonRequired, DecimalScale(2), Range(typeof(decimal), "0", "999999999.99")]
+    public decimal StockQuantity { get; init; }
     [StringLength(1000)] public string? Description { get; init; }
+}
+
+public sealed class UpdateProductRequest : SaveProductRequest
+{
+    [Range(1, int.MaxValue)] public int Id { get; init; }
 }

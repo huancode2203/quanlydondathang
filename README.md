@@ -1,113 +1,39 @@
 # Quản lý đơn đặt hàng
 
-Ứng dụng Angular và ASP.NET Core Web API quản lý đơn đặt hàng, kết nối trực tiếp database `QuanLyDonDatHangDB` trên SQL Server.
-
-## Chức năng
-
-- Tải danh sách đơn đặt hàng có phân trang.
-- Đăng nhập JWT bằng tài khoản trong `tbl_TaiKhoan`.
-- Tìm kiếm cơ bản và lọc nâng cao theo người tạo, người giao, khoảng tổng tiền.
-- Sắp xếp theo ngày giao hoặc tổng tiền tăng/giảm.
-- Bộ lọc và thanh phân trang giữ cố định; chỉ vùng danh sách đơn hàng cuộn.
-- Phân trang hiển thị nhiều số trang để chuyển nhanh.
-- Thêm, xem/sửa và xóa đơn cùng toàn bộ chi tiết hàng hóa.
-- Tạo nhanh khách hàng ngay trong form thêm đơn.
-- Quản lý khách hàng, hàng hóa và tồn kho ở các màn hình tối giản.
-- Cảnh báo số lượng đặt vượt tồn kho nhưng vẫn cho phép lưu.
-- Kiểm tra miền ngày và chặn tổng thanh toán âm.
-- Tính thành tiền từng dòng và tổng thanh toán.
-- Kiểm tra quyền từ `tbl_TaiKhoan`, `tbl_NhomQuyen`, `tbl_CapQuyen`, `tbl_Quyen`.
-- Phân quyền theo từng tài khoản: có thể chọn đồng thời nhiều nhóm, hệ thống cộng quyền của các nhóm rồi cho phép tùy chỉnh quyền riêng.
-- Quyền `VIEW` là quyền nền: chọn quyền thao tác tự bổ sung quyền xem; bỏ quyền xem sẽ bỏ các thao tác phụ thuộc trong cùng phân hệ.
-- Nhóm Admin được bảo vệ và luôn có toàn bộ quyền.
-- Tự ẩn menu phân hệ khi tài khoản không có quyền xem và chặn truy cập trực tiếp bằng route guard.
-- Thanh công cụ đầu trang dùng shared component; toàn bộ CSS được quản lý tập trung trong `shared/styles`, màn hình nghiệp vụ không khai báo CSS riêng.
-- Khu vực tài khoản/phân quyền co giãn theo màn hình và không tạo thanh cuộn ngang.
-- Đơn đang xử lý giữ tồn khả dụng; đơn hủy giải phóng số lượng giữ; đơn đã giao trừ tồn thực tế đúng một lần.
-- Chỉ cho chuyển trạng thái theo đúng vòng đời và khóa chỉnh sửa/xóa đối với đơn đã giao hoặc đã hủy.
-- Button trên mọi màn hình dùng chung các biến thể `primary`, `secondary`, `ghost`, `danger` từ stylesheet nền tảng.
-- Giao diện responsive bằng Angular.
+Ứng dụng Angular + ASP.NET Core API cho đơn hàng, khách hàng, hàng hóa và phân quyền; dữ liệu lưu trong SQL Server `QuanLyDonDatHangDB`.
 
 ## Kiến trúc
 
 ```text
-Angular
-  └─ OrderApiService
-       ↓ http://localhost:5000
-API Gateway (YARP)
-       ↓ http://localhost:5001
-Services/Order/Order.Api/Controllers/OrdersController
-       ↓
-Common/sv.Order/Repository/Interface/IOrderRepository
-       ↓
-Common/sv.Order/Repository/Implement/OrderRepository
-       ├─ Dapper: tìm kiếm, chi tiết, danh mục, đăng nhập
-       └─ EF Core: thêm, sửa, xóa và transaction
-              ↓
-SQL Server / QuanLyDonDatHangDB
+Angular → API Gateway (YARP) → Order API Controller
+                                  ↓
+                         Repository Interface
+                                  ↓
+                         Repository Implementation
+                           ├─ Dapper: đọc/lọc
+                           └─ EF Core: ghi và transaction
+                                  ↓
+                         SQL Server
 ```
 
-## Cấu hình hiện tại
+Các API nghiệp vụ dùng POST và JSON body. Response có dạng `{ "status": 200, "value": ..., "message": "..." }`; lỗi có thể thêm `errors` và `traceId`. Trang Angular và các file tĩnh vẫn được tải theo HTTP GET.
 
-- SQL Server: `HUANPHAM\MSSQLSERVER01`
-- Database: `QuanLyDonDatHangDB`
-- API Gateway: `http://localhost:5000`
-- Order API: `http://localhost:5001`
-- Angular: `http://localhost:4200`
-- Tài khoản demo: `admin` / `123456`
+## Tính năng chính
 
-Chuỗi kết nối nằm tại `Backend/Services/Order/Order.Api/appsettings.json`.
+- Tìm, lọc, sắp xếp, phân trang và quản lý đơn đặt hàng.
+- Quản lý khách hàng, hàng hóa, tồn kho và quyền theo nhóm/tài khoản.
+- Nhiều nhóm quyền trên một tài khoản; quyền thao tác yêu cầu quyền xem cùng phân hệ.
+- Đơn chờ/đang xử lý giữ lượng hàng khả dụng; đơn hủy nhả lượng giữ; đơn giao thành công trừ tồn thực tế một lần.
+- CSDL có các ràng buộc miền dữ liệu cho ngày, trạng thái, tiền và số lượng.
 
-## Chạy dự án
-Mở ba terminal.
+## Cấu hình phát triển
 
-Terminal 1 — Order API:
+SQL Server local được cấu hình trong [appsettings.json](Backend/Services/Order/Order.Api/appsettings.json). Máy phát triển hiện dùng instance `HUANPHAM\MSSQLSERVER01`, database `QuanLyDonDatHangDB`, và .NET 11 Preview SDK theo `global.json`.
 
-```powershell
-cd ...\Backend\Services\Order\Order.Api
-dotnet run
-```
+Để phát triển bằng ba tiến trình riêng, chọn task **Run full project** trong VS Code. Để triển khai dùng IIS, chạy [scripts/Publish-Iis.ps1](scripts/Publish-Iis.ps1), sau đó chạy [scripts/Install-Iis.ps1](scripts/Install-Iis.ps1) trong Windows PowerShell với quyền Administrator. IIS được cấu hình để chạy giao diện và API qua một địa chỉ web; hướng dẫn và giới hạn máy hiện tại ở [docs/IIS_VA_TRIEN_KHAI.md](docs/IIS_VA_TRIEN_KHAI.md).
 
-Terminal 2 — API Gateway:
+Tạo database mới bằng `sqlcmd -S 'HUANPHAM\MSSQLSERVER01' -E -C -b -i Database/Initialize.sql`. Với database đã có dữ liệu, sao lưu trước, chạy `Database/007_NormalizeDomains.sql` với `ApplyChanges=0` để xem trước; chỉ chạy `ApplyChanges=1` sau khi preflight báo PASS. Migration 007 không tính lại tồn kho lịch sử.
 
-```powershell
-cd ...\Backend\APIGateway
-dotnet run
-```
+Để chạy kiểm thử contract HTTP độc lập: `dotnet run --project Backend/Tests/Order.Api.ContractTests -c Release`. Tùy chọn `--database` dựng database thử nghiệm mới, áp dụng schema hiện hành, chạy CRUD/tồn kho qua HTTP rồi xóa database thử nghiệm.
 
-Terminal 3 — Angular:
-
-```powershell
-cd ...\Frontend\OrderManagement.Web
-npm install
-npm start
-```
-
-Truy cập `http://localhost:4200`.
-
-## API
-
-| Method | Endpoint | Chức năng | Quyền |
-|---|---|---|---|
-| POST | `/api/auth/login` | Đăng nhập và nhận JWT | Không yêu cầu |
-| GET | `/api/orders` | Danh sách và tìm kiếm | `ORDER_VIEW` |
-| GET | `/api/orders/{id}` | Chi tiết đơn | `ORDER_VIEW` |
-| GET | `/api/orders/lookups` | Khách hàng, hàng hóa, nhân viên | `ORDER_VIEW` |
-| POST | `/api/orders` | Thêm đơn | `ORDER_CREATE` |
-| PUT | `/api/orders/{id}` | Sửa đơn | `ORDER_UPDATE` |
-| DELETE | `/api/orders/{id}` | Xóa đơn | `ORDER_DELETE` |
-| GET/POST/PUT/DELETE | `/api/customers` | Quản lý khách hàng | `CUSTOMER_*` |
-| GET/POST/PUT/DELETE | `/api/products` | Quản lý hàng hóa và tồn kho | `PRODUCT_*` |
-| GET | `/api/permissions` | Danh sách nhóm và quyền | `PERMISSION_MANAGE` |
-| PUT | `/api/permissions/roles/{id}` | Cập nhật quyền của nhóm | `PERMISSION_MANAGE` |
-| PUT | `/api/permissions/accounts/{id}` | Đổi nhóm và cập nhật quyền riêng của tài khoản | `PERMISSION_MANAGE` |
-
-Angular gửi JWT Bearer tự động. Người tạo đơn được lấy từ claim `employee_id`, không lấy từ dữ liệu do frontend tự nhập. Quyền của một tài khoản được ghi vào JWT khi đăng nhập, vì vậy người dùng cần đăng nhập lại để nhận cấu hình quyền mới.
-
-## Database
-
-Script gốc nằm tại `Database/QuanLyDonDatHangDB.sql`. File `Database/002_AddProductStock.sql` nâng cấp database hiện có với cột `SoLuongTon`; `Database/003_EnsureAdminFullPermissions.sql` bảo đảm nhóm Admin có mọi quyền; `Database/004_AddAccountPermissions.sql` bổ sung quyền riêng theo tài khoản; `Database/005_AddOrderStockWorkflow.sql` đánh dấu đơn đã trừ kho để chống trừ lặp; `Database/006_AddMultipleAccountRoles.sql` cho phép một tài khoản thuộc nhiều nhóm quyền và chuẩn hóa phụ thuộc quyền xem. Các script nâng cấp đều có thể chạy lại an toàn.
-
-Phân tích chi tiết công dụng từng folder/file nằm trong `docs/KIEN_TRUC_VA_CONG_DUNG_FILE.md`.
-
-> Máy hiện tại chỉ có .NET SDK 11 Preview nên backend đang target `net11.0`. Có thể chuyển xuống bản .NET LTS khi cài SDK tương ứng.
+Giải thích Entity/DTO, hợp đồng POST và lỗi request nằm trong [docs/API_DTO_VA_XU_LY_LOI.md](docs/API_DTO_VA_XU_LY_LOI.md). Sơ đồ folder và công dụng file nằm trong [docs/KIEN_TRUC_VA_CONG_DUNG_FILE.md](docs/KIEN_TRUC_VA_CONG_DUNG_FILE.md).

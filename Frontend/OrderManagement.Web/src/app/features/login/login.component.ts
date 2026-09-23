@@ -1,4 +1,4 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { apiErrorMessage } from '../../core/models/api.model';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -31,7 +31,7 @@ export class LoginComponent {
       finalize(() => this.loading.set(false)),
     ).subscribe({
       next: () => void this.router.navigate([this.auth.defaultRoute()]),
-      error: (error: HttpErrorResponse) => this.error.set(error.error?.message ?? 'Không thể kết nối đến máy chủ.'),
+      error: (error: unknown) => this.error.set(apiErrorMessage(error)),
     });
   }
 }

@@ -28,7 +28,7 @@ public sealed class OrderDbContext(DbContextOptions<OrderDbContext> options) : D
         order.Property(x => x.ManagerEmployeeId).HasColumnName("NhanVienQuanLyID");
         order.Property(x => x.DeliveryEmployeeId).HasColumnName("NhanVienGiaoHangID");
         order.Property(x => x.OrderedAt).HasColumnName("NgayDatHang");
-        order.Property(x => x.ExpectedDeliveryAt).HasColumnName("NgayGiaoDuKien");
+        order.Property(x => x.ExpectedDeliveryAt).HasColumnName("NgayGiaoDuKien").IsRequired();
         order.Property(x => x.DeliveredAt).HasColumnName("NgayGiaoThucTe");
         order.Property(x => x.DeliveryAddress).HasColumnName("DiaChiGiaoHang").HasMaxLength(500);
         order.Property(x => x.MerchandiseTotal).HasColumnName("TongTienHang").HasPrecision(18, 2);
@@ -127,11 +127,9 @@ public sealed class OrderDbContext(DbContextOptions<OrderDbContext> options) : D
         account.HasKey(x => x.Id);
         account.Property(x => x.Id).HasColumnName("TaiKhoanID");
         account.Property(x => x.EmployeeId).HasColumnName("NhanVienID");
-        account.Property(x => x.RoleId).HasColumnName("NhomQuyenID");
         account.Property(x => x.Username).HasColumnName("TenDangNhap").HasMaxLength(100).IsUnicode(false);
         account.Property(x => x.Status).HasColumnName("TrangThai").HasMaxLength(20).IsUnicode(false);
         account.Property(x => x.UsesCustomPermissions).HasColumnName("SuDungQuyenRieng");
-        account.HasOne(x => x.Role).WithMany(x => x.Accounts).HasForeignKey(x => x.RoleId);
 
         var accountRole = modelBuilder.Entity<AccountRoleEntity>();
         accountRole.ToTable("tbl_TaiKhoanNhomQuyen");

@@ -1,6 +1,35 @@
-@Order.Api_HostAddress = http://localhost:5133
+@host = http://127.0.0.1:5001
+@token = paste-token-from-login-value-here
 
-GET {{Order.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Health (empty JSON object is still required)
+POST {{host}}/api/health
+Content-Type: application/json
 
-###
+{}
+
+### Login — replace with your own account
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{"username":"your-username","password":"your-password"}
+
+### Search — all criteria are in the JSON body
+POST {{host}}/api/orders/search
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{"keyword":"","page":1,"pageSize":10,"sort":"totalDesc"}
+
+### Detail
+POST {{host}}/api/orders/detail
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{"id":1}
+
+### Permission groups and accounts
+POST {{host}}/api/permissions/search
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{}
